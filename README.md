@@ -25,7 +25,7 @@ Finally, the type alias `GF2` defines the common case.
 
 * Explicitly give all type parameters: `Z{5, Int}(3)`
 
-* Storage type inferred from value: `Z(0x3, 5) == Z{5, UInt8}(0x3)`
+* Storage type inferred from value: `Z(5, 0x3) == Z{5, UInt8}(0x3)`
 
 * Type alias: `GF{5}(3) == Z{5, Int}(3)`
 
