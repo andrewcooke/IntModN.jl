@@ -61,7 +61,7 @@ function test_constructor()
     @assert string(Z{3,Int}(2)) == "2 mod 3"
     @assert string(Z(0x3, 4)) == "3 mod 4"
     @assert string(GF2(1)) == "1 mod 2"
-    @assert GF2(1) == Z{2,Int}(1) == Z(1, 2)
+    @assert GF2(1) == GF{2}(1) == Z{2,Int}(1) == Z(1, 2)
 
     @assert isa(Z(0x3, 4).int, Uint8)
 
