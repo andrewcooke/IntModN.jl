@@ -14,7 +14,9 @@ type Z{N, I<:Integer}
         new(n)
     end
 end
-Z{I<:Integer}(n::I, N::Int) = Z{N, I}(n)
+
+# infer the inderlying type and reduce to canonical form
+Z{I<:Integer}(n::I, N::Int) = Z{N, I}(convert(I, n % N))
 
 # TODO - more aliases?
 typealias GF2 Z{2, Int}
@@ -24,7 +26,7 @@ function show{N,I}(io::IO, z::Z{N,I})
     print(io, "$(z.int) mod $N")
 end
 
-# there is NO conversion between different parameterisations of Z and
+# there is no conversion between different parameterisations of Z and
 # equality is strictly for matching types.
 =={N,I}(a::Z{N,I}, b::Z{N,I}) = a.int == b.int
 
@@ -40,7 +42,7 @@ function test_constructor()
     @assert isa(Z(0x3, 4).int, Uint8)
 
     try
-        bad = Z(2, 1)
+        bad = Z{1, Int}(2)
         error("expected failure")
     catch e
         @assert isa(e, ErrorException)
@@ -54,7 +56,7 @@ function tests()
     test_constructor()
 end
 
-#tests()
+tests()
 
 end
 
