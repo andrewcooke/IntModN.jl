@@ -23,7 +23,7 @@ type Z{N, I<:Integer}<:Number
 end
 
 # infer the inderlying type and reduce to canonical form
-Z{I<:Integer}(n::I, N::Int) = Z{N, I}(convert(I, mod(n, N)))
+Z{I<:Integer}(N::Int, n::I) = Z{N, I}(convert(I, mod(n, N)))
 
 # TODO - more aliases?
 typealias GF{N} Z{N, Int}
@@ -72,11 +72,11 @@ inv{N,I}(a::Z{N,I}) = Z{N,I}(inverse(a.int, convert(I, N)))
 function test_constructor()
 
     @assert string(Z{3,Int}(2)) == "2"
-    @assert string(Z(0x3, 4)) == "3"
+    @assert string(Z(4, 0x3)) == "3"
     @assert string(GF2(1)) == "1"
-    @assert GF2(1) == GF{2}(1) == Z{2,Int}(1) == Z(1, 2)
+    @assert GF2(1) == GF{2}(1) == Z{2,Int}(1) == Z(2, 1)
 
-    @assert isa(Z(0x3, 4).int, Uint8)
+    @assert isa(Z(4, 0x3).int, Uint8)
 
     try
         bad = Z{1, Int}(2)
@@ -92,7 +92,7 @@ end
 function test_arithmetic()
 
     @assert GF2(1) + GF2(1) == GF2(0)
-    @assert zero(Z{5,Int}) - one(Z{5,Int}) == Z(4, 5)
+    @assert zero(Z{5,Int}) - one(Z{5,Int}) == Z(5, 4)
     @assert inv(GF{5}(3)) == GF{5}(2)
     @assert GF{5}(3) * GF{5}(2) == one(GF{5})
 
