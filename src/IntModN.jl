@@ -35,10 +35,9 @@ show{N,I}(io::IO, z::Z{N,I}) = print(io, string(z.int))
 # there is no conversion between different parameterisations of Z and
 # equality is strictly for matching types.
 =={N,I}(a::Z{N,I}, b::Z{N,I}) = a.int == b.int
-real{N,I}(a::Z{N,I}) = real(a.int)
-abs{N,I}(a::Z{N,I}) = a
 <{N,I}(a::Z{N,I}, b::Z{N,I}) = a.int < b.int
-
+real{N,I}(a::Z{N,I}) = a
+abs{N,I}(a::Z{N,I}) = a
 zero{N,I}(::Type{Z{N,I}}) = Z{N,I}(zero(I))
 one{N,I}(::Type{Z{N,I}}) = Z{N,I}(one(I))
 
