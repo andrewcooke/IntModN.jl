@@ -46,4 +46,8 @@ here](http://math.stackexchange.com/questions/169921/how-to-solve-system-of-line
     @assert x == [o, l, o, o]
 ```
 
+## Licence
+
+MIT Licence; (c) 2014 Andrew Cooke andrew@acooke.org
+
 [![Build Status](https://travis-ci.org/andrewcooke/IntModN.jl.png)](https://travis-ci.org/andrewcooke/IntModN.jl)
