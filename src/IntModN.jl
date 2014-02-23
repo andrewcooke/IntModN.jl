@@ -9,6 +9,8 @@ type Z{N, I<:Integer}
     int::I
     function Z(n)
         @assert isa(N, Int) "N ($N) not an Int"
+        @assert N > 0 "N ($N) too small"
+        @assert N <= typemax(I) "N ($N) too large for $I"
         @assert n >= 0 "n ($n) too small"
         @assert n < N "n ($n) too large (>= $N)"
         new(n)
@@ -60,6 +62,7 @@ function test_constructor()
 end
 
 function test_arithmetic()
+
     @assert GF2(1) + GF2(1) == GF2(0)
     @assert zero(Z{5,Int}) - one(Z{5,Int}) == Z(4, 5)
 
