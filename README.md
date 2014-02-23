@@ -15,8 +15,8 @@ The base type is `Z{N,I<:Integer}` where N is an `Int` that defines the
 modulus and `I` is the type used to store the values.  So `Z{5,Int}(3)`
 creates the value `3 mod 5`, stored internally as an `Int`.
 
-Since most uses will want to use `Int` for storage (since it is both fast and
-easy to use with literal values), there is a type alias `GF{N}`.  So the above
+Most uses will want to use `Int` for storage (since it is both fast and easy
+to use with literal values), so there is a type alias `GF{N}`.  So the above
 value is equivalent to `GF{5}(3)`.
 
 Finally, the type alias `GF2` defines the common case.
