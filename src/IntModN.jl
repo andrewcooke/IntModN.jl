@@ -73,7 +73,7 @@ function test_constructor()
         @assert search(string(e), "too large") != 0:-1 
     end
 
-    println("test_contructor ok")
+    println("test_constructor ok")
 end
 
 function test_arithmetic()
@@ -82,6 +82,14 @@ function test_arithmetic()
     @assert zero(Z{5,Int}) - one(Z{5,Int}) == Z(4, 5)
     @assert inv(GF{5}(3)) == GF{5}(2)
     @assert GF{5}(3) * GF{5}(2) == one(GF{5})
+
+    try
+        inv(GF{6}(2))
+        error("expected failure")
+    catch e
+        @assert isa(e, ErrorException)
+        @assert search(string(e), "not invertible") != 0:-1 
+    end
 
     println("test_arithmetic ok")
 end
