@@ -16,10 +16,11 @@ modulus and `I` is the type used to store the values.  So `Z{5,Int}(3)`
 creates the value `3 mod 5`, stored internally as an `Int`.
 
 Most uses will want to use `Int` for storage (since it is both fast and easy
-to use with literal values), so there is a type alias `GF{N}`.  So the above
-value is equivalent to `GF{5}(3)`.
+to use with literal values), so there is a type alias `GF{N}`.  The value
+above can be written as `GF{5}(3)`.
 
-Finally, the type alias `GF2` defines the common case.
+Finally, the type alias `GF2` defines the common case of values modulo 2
+(where addition and subtraction are XOR and multiplication is AND).
 
 ## Constructors
 
