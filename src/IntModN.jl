@@ -115,6 +115,16 @@ function test_matrix_inverse()
     x = A\b
     @assert x == [zero(GF2), one(GF2)]
 
+    # http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation
+    l, o = one(GF2), zero(GF2)
+    A = [l l l o; 
+         l l o l;
+         l o l l;
+         o l l l]
+    b = [l, l, o, l]
+    x = A\b
+    @assert x == [o, l, o, o]
+
     println("test_matrix_inverse ok")
 end
 
