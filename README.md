@@ -1,6 +1,6 @@
 # IntModN.jl
 
-A type, and associated arithmetic operstors, for groups of integers modulo
+A type, and associated arithmetic operators, for groups of integers modulo
 some value, N.  Only simple integers are supported (no vector spaces or
 polynomials).
 
@@ -9,7 +9,7 @@ the multiplicative inverse is defined for all non-zero values.  If N is not
 prime then an exception may be raised (unless the particular value being
 inverted is co-prime with the modulus).
 
-## Types
+## Type and Aliases
 
 The base type is `Z{N,I<:Integer}` where N is an `Int` that defines the
 modulus and `I` is the type used to store the values.  So `Z{5,Int}(3)`
