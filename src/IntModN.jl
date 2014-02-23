@@ -22,7 +22,7 @@ Z{I<:Integer}(n::I, N::Int) = Z{N, I}(convert(I, mod(n, N)))
 
 # TODO - more aliases?
 typealias GF{N} Z{N, Int}
-typealias GF2 Z{2, Int}
+typealias GF2 GF{2}
 
 function show{N,I}(io::IO, z::Z{N,I})
     # TODO - something more compact?
