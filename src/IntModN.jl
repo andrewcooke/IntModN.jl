@@ -3,6 +3,8 @@ module IntModN
 
 import Base: show
 
+# the underlying integer type can be specified, but typically (via the
+# Z function below) will be Int.
 type Z{N, I<:Integer}
     int::I
     function Z(n)
@@ -14,6 +16,7 @@ type Z{N, I<:Integer}
 end
 Z{I<:Integer}(n::I, N::Int) = Z{N, I}(n)
 
+# TODO - more aliases?
 typealias GF2 Z{2, Int}
 
 function show{N,I}(io::IO, z::Z{N,I})
@@ -21,6 +24,8 @@ function show{N,I}(io::IO, z::Z{N,I})
     print(io, "$(z.int) mod $N")
 end
 
+# there is NO conversion between different parameterisations of Z and
+# equality is strictly for matching types.
 =={N,I}(a::Z{N,I}, b::Z{N,I}) = a.int == b.int
 
 
