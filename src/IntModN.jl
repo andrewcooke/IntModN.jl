@@ -1,7 +1,7 @@
 
 module IntModN
 
-import Base: show
+import Base: show, zero, one
 
 # the underlying integer type can be specified, but typically (via the
 # Z function below) will be Int.
@@ -9,14 +9,14 @@ type Z{N, I<:Integer}
     int::I
     function Z(n)
         @assert isa(N, Int) "N ($N) not an Int"
-        @assert n > 0 "n ($n) too small"
+        @assert n >= 0 "n ($n) too small"
         @assert n < N "n ($n) too large (>= $N)"
         new(n)
     end
 end
 
 # infer the inderlying type and reduce to canonical form
-Z{I<:Integer}(n::I, N::Int) = Z{N, I}(convert(I, n % N))
+Z{I<:Integer}(n::I, N::Int) = Z{N, I}(convert(I, mod(n, N)))
 
 # TODO - more aliases?
 typealias GF2 Z{2, Int}
@@ -30,6 +30,13 @@ end
 # equality is strictly for matching types.
 =={N,I}(a::Z{N,I}, b::Z{N,I}) = a.int == b.int
 
+zero{N,I}(::Type{Z{N,I}}) = Z{N,I}(zero(I))
+one{N,I}(::Type{Z{N,I}}) = Z{N,I}(one(I))
+
+# TODO - worry about size of intermediate values
++{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.int + b.int, N)))
+-{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.int - b.int, N)))
+*{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.int * b.int, N)))
 
 
 function test_constructor()
@@ -52,8 +59,16 @@ function test_constructor()
     println("test_contructor ok")
 end
 
+function test_arithmetic()
+    @assert GF2(1) + GF2(1) == GF2(0)
+    @assert zero(Z{5,Int}) - one(Z{5,Int}) == Z(4, 5)
+
+    println("test_arithmetic ok")
+end
+
 function tests()
     test_constructor()
+    test_arithmetic()
 end
 
 tests()
