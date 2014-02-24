@@ -30,10 +30,17 @@ Finally, the type alias `GF2` defines the common case of values modulo 2
 
 * Type alias: `GF{5}(3) == Z{5, Int}(3)`
 
-## Example
+## Example - Boolean Algebra
 
 To solve [the problem
 here](http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation):
+
+```
+    1 = x $ y $ z
+    1 = x $ y $ w
+    0 = x $ w $ z
+    1 = w $ y $ z
+```
 
 ```
     l, o = one(GF2), zero(GF2)
@@ -44,6 +51,20 @@ here](http://math.stackexchange.com/questions/169921/how-to-solve-system-of-line
     b = [l, l, o, l]
     x = A\b
     @assert x == [o, l, o, o]
+```
+
+```
+    x, y, z, w = 0, 1, 0, 0
+```
+## Example - DH Key Exchange
+
+From [the example
+here](http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics):
+
+```
+    @assert (base^6).int == 8
+    @assert (base^15).int == 19
+    @assert ((base^15)^6).int == 2 == ((base^6)^15).int
 ```
 
 ## Licence

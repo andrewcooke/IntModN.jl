@@ -68,6 +68,16 @@ end
 inv{N,I}(a::Z{N,I}) = Z{N,I}(inverse(a.int, convert(I, N)))
 /{N,I}(a::Z{N,I}, b::Z{N,I}) = a * inv(b)
 
+function ^{N,I}(a::Z{N,I}, p::Integer)
+    if p == 0
+        one(Z{N,I})
+    elseif p < 0
+        Z(N, powermod(inv(a).int, abs(p), N))
+    else
+        Z(N, powermod(a.int, p, N))
+    end
+end
+
 
 function test_constructor()
 
@@ -128,10 +138,23 @@ function test_matrix_inverse()
     println("test_matrix_inverse ok")
 end
 
+function test_power()
+
+    # http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics
+    base = Z(23, 5)
+    @assert (base^6).int == 8
+    @assert (base^15).int == 19
+    @assert ((base^15)^6).int == 2
+    @assert ((base^6)^15).int == 2
+
+    println("test_power ok")
+end
+
 function tests()
     test_constructor()
     test_arithmetic()
     test_matrix_inverse()
+    test_power()
 end
 
 tests()
