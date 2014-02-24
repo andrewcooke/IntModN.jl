@@ -62,9 +62,9 @@ From [the example
 here](http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics):
 
 ```
-    @assert (base^6).int == 8
-    @assert (base^15).int == 19
-    @assert ((base^15)^6).int == 2 == ((base^6)^15).int
+    @assert (base^6).n == 8
+    @assert (base^15).n == 19
+    @assert ((base^15)^6).n == 2 == ((base^6)^15).n
 ```
 
 ## Licence

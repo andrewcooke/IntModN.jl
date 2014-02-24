@@ -11,7 +11,7 @@ import Base: show, zero, one, inv, real, abs, convert, promote_rule
 # the underlying integer type can be specified, but typically (via the
 # Z function below) will be Int.
 type Z{N, I<:Integer}<:Number
-    int::I
+    n::I
     function Z(n)
         @assert isa(N, Int) "N ($N) not an Int"
         @assert N > 0 "N ($N) too small"
@@ -30,12 +30,12 @@ typealias GF{N} Z{N, Int}
 typealias GF2 GF{2}
 
 # TODO - something compact that includes N?
-show{N,I}(io::IO, z::Z{N,I}) = print(io, string(z.int))
+show{N,I}(io::IO, z::Z{N,I}) = print(io, string(z.n))
 
 # there is no conversion between different parameterisations of Z and
 # equality is strictly for matching types.
-=={N,I}(a::Z{N,I}, b::Z{N,I}) = a.int == b.int
-<{N,I}(a::Z{N,I}, b::Z{N,I}) = a.int < b.int
+=={N,I}(a::Z{N,I}, b::Z{N,I}) = a.n == b.n
+<{N,I}(a::Z{N,I}, b::Z{N,I}) = a.n < b.n
 real{N,I}(a::Z{N,I}) = a
 abs{N,I}(a::Z{N,I}) = a
 zero{N,I}(::Type{Z{N,I}}) = Z{N,I}(zero(I))
@@ -44,12 +44,12 @@ one{N,I}(::Type{Z{N,I}}) = Z{N,I}(one(I))
 # we do allow promotion to Int/Uint (necessary for linalg to work)
 promote_rule{N,I<:Unsigned}(::Type{Z{N,I}},::Type{Uint}) = Uint
 promote_rule{N,I<:Integer}(::Type{Z{N,I}},::Type{Int}) = Int
-convert{N,I<:Unsigned}(::Type{Uint}, a::Z{N,I}) = convert(Uint, a.int)
-convert{N,I<:Integer}(::Type{Int}, a::Z{N,I}) = convert(Int, a.int)
+convert{N,I<:Unsigned}(::Type{Uint}, a::Z{N,I}) = convert(Uint, a.n)
+convert{N,I<:Integer}(::Type{Int}, a::Z{N,I}) = convert(Int, a.n)
 
-+{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.int + b.int, N)))
--{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.int - b.int, N)))
-*{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.int * b.int, N)))
++{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.n + b.n, N)))
+-{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.n - b.n, N)))
+*{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.n * b.n, N)))
 
 # http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Modular_integers
 function inverse{I<:Integer}(a::I, n::I)
@@ -65,16 +65,16 @@ function inverse{I<:Integer}(a::I, n::I)
 end
 
 # TODO - cache values
-inv{N,I}(a::Z{N,I}) = Z{N,I}(inverse(a.int, convert(I, N)))
+inv{N,I}(a::Z{N,I}) = Z{N,I}(inverse(a.n, convert(I, N)))
 /{N,I}(a::Z{N,I}, b::Z{N,I}) = a * inv(b)
 
 function ^{N,I}(a::Z{N,I}, p::Integer)
     if p == 0
         one(Z{N,I})
     elseif p < 0
-        Z(N, powermod(inv(a).int, abs(p), N))
+        Z(N, powermod(inv(a).n, abs(p), N))
     else
-        Z(N, powermod(a.int, p, N))
+        Z(N, powermod(a.n, p, N))
     end
 end
 
@@ -86,7 +86,7 @@ function test_constructor()
     @assert string(GF2(1)) == "1"
     @assert GF2(1) == GF{2}(1) == Z{2,Int}(1) == Z(2, 1)
 
-    @assert isa(Z(4, 0x3).int, Uint8)
+    @assert isa(Z(4, 0x3).n, Uint8)
 
     try
         bad = Z{1, Int}(2)
@@ -142,10 +142,10 @@ function test_power()
 
     # http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics
     base = Z(23, 5)
-    @assert (base^6).int == 8
-    @assert (base^15).int == 19
-    @assert ((base^15)^6).int == 2
-    @assert ((base^6)^15).int == 2
+    @assert (base^6).n == 8
+    @assert (base^15).n == 19
+    @assert ((base^15)^6).n == 2
+    @assert ((base^6)^15).n == 2
 
     println("test_power ok")
 end
