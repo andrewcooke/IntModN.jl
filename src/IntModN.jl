@@ -1,7 +1,8 @@
 
 module IntModN
 
-import Base: show, zero, one, inv, real, abs, convert, promote_rule
+import Base: show, showcompact, zero, one, inv, real, abs, convert,
+       promote_rule
 
 # much thanks to Andreas Noack Jensen
 # https://groups.google.com/d/msg/julia-users/Ui977brdzAU/u4rWiDeJv-MJ
@@ -29,8 +30,8 @@ Z{I<:Integer}(N::Int, n::I) = Z{N, I}(convert(I, mod(n, N)))
 typealias GF{N} Z{N, Int}
 typealias GF2 GF{2}
 
-# TODO - something compact that includes N?
-show{N,I}(io::IO, z::Z{N,I}) = print(io, string(z.n))
+showcompact{N,I}(io::IO, z::Z{N,I}) = print(io, string(z.n))
+show{N,I}(io::IO, z::Z{N,I}) = print(io, "$(z.n) mod $N")
 
 # there is no conversion between different parameterisations of Z and
 # equality is strictly for matching types.
@@ -81,9 +82,9 @@ end
 
 function test_constructor()
 
-    @assert string(Z{3,Int}(2)) == "2"
-    @assert string(Z(4, 0x3)) == "3"
-    @assert string(GF2(1)) == "1"
+    @assert string(Z{3,Int}(2)) == "2 mod 3"
+    @assert string(Z(4, 0x3)) == "3 mod 4"
+    @assert string(GF2(1)) == "1 mod 2"
     @assert GF2(1) == GF{2}(1) == Z{2,Int}(1) == Z(2, 1)
 
     @assert isa(Z(4, 0x3).n, Uint8)
