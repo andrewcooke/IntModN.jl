@@ -48,6 +48,8 @@ promote_rule{N,I<:Integer}(::Type{Z{N,I}},::Type{Int}) = Int
 convert{N,I<:Unsigned}(::Type{Uint}, a::Z{N,I}) = convert(Uint, a.n)
 convert{N,I<:Integer}(::Type{Int}, a::Z{N,I}) = convert(Int, a.n)
 
+# TODO - worry about overflow?  negative values?  or trust the user?
+-{N,I}(a::Z{N,I}) = Z{N,I}(convert(I, mod(-a.n, N)))
 +{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.n + b.n, N)))
 -{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.n - b.n, N)))
 *{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.n * b.n, N)))
