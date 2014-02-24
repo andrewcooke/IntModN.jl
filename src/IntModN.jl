@@ -10,7 +10,7 @@ import Base: show, zero, one, inv, real, abs, convert, promote_rule
 
 # the underlying integer type can be specified, but typically (via the
 # Z function below) will be Int.
-type Z{N, I<:Integer}<:Number
+immutable Z{N, I<:Integer}<:Number
     n::I
     function Z(n)
         @assert isa(N, Int) "N ($N) not an Int"
