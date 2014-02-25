@@ -24,11 +24,14 @@ Finally, the type alias `GF2` defines the common case of values modulo 2
 
 ## Constructors
 
-* Explicitly give all type parameters: `Z{5, Int}(3)`
+* Explicitly give all type parameters: `Z{5, Int}(3)`;
 
-* Storage type inferred from value: `Z(5, 0x3) == Z{5, UInt8}(0x3)`
+* Helper that infers from value: `Z(5, 0x3) == Z{5, UInt8}(0x3)`;
 
-* Type alias: `GF{5}(3) == Z{5, Int}(3)`
+* Type alias: `GF{5}(3) == Z{5, Int}(3)`.
+
+The first form requires that the argument be within the range 0-N.  Other
+forms normalize as necessary.
 
 ## Example - Boolean Algebra
 
@@ -73,3 +76,4 @@ here](http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanati
 MIT Licence; (c) 2014 Andrew Cooke andrew@acooke.org
 
 [![Build Status](https://travis-ci.org/andrewcooke/IntModN.jl.png)](https://travis-ci.org/andrewcooke/IntModN.jl)
+ 
