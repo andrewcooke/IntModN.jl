@@ -1,7 +1,7 @@
 # IntModN.jl
 
-A type, and associated arithmetic operators, for groups of integers modulo
-some value, N.  Only simple integers are supported (no vector spaces or
+A type, and associated arithmetic operators, for rings of integers modulo some
+value, N.  Only simple integers are supported (no vector spaces or
 polynomials).
 
 If N is prime then the group of possible values for the type form a field and
