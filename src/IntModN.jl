@@ -1,58 +1,98 @@
 
-module IntModN
+# a pragmatic library for doing modular arithmetic.
 
-import Base: show, showcompact, zero, one, inv, real, abs, convert,
-       promote_rule
+# the aim here is not to encapsulate a large amount of theory, or to describe
+# the theoretical relationships between different structures, but to enable
+# arithmetic on various types, motivated largely by the practical needs of
+# crypto code.
+
+# currently incomplete; the aim is to support rings and fields (prime moduli)
+# of integers, rings and factor rings of polynomials over those, and related
+# fields (irreducible factor polynomials).
 
 # much thanks to Andreas Noack Jensen
 # https://groups.google.com/d/msg/julia-users/Ui977brdzAU/u4rWiDeJv-MJ
 # https://gist.github.com/andreasnoackjensen/9132511
 # (but since this changes things significanty, mistakes are mine...)
 
-# the underlying integer type can be specified, but typically (via the
-# Z function below) will be Int.
-immutable Z{N, I<:Integer}<:Number
-    n::I
-    function Z(n)
-        @assert isa(N, Int) "N ($N) not an Int"
-        @assert N > 0 "N ($N) too small"
-        @assert N <= typemax(I) "N ($N) too large for $I"
-        @assert n >= 0 "n ($n) too small"
-        @assert n < N "n ($n) too large (>= $N)"
-        new(n)
-    end
+
+module IntModN
+
+import Base: show, showcompact, zero, one, inv, real, abs, convert,
+       promote_rule
+
+export Z, ZField, ZRing, ZR, ZF, GF2
+
+
+# --- integers modulo n
+
+#     we need two types here because prime moduli have a faster inverse
+#     (via euler's theorem) (note - we do NOT test for primality).
+
+abstract Z{N, I<:Integer} <: Number
+
+# you can construct these directly, but code assumes that the integer is
+# already reduced mod N, that capacities are ok, etc.
+
+immutable ZRing{N, I<:Integer} <: Z{N,I}
+    i::I
 end
 
-# infer the inderlying type and reduce to canonical form
-Z{I<:Integer}(N::Int, n::I) = Z{N, I}(convert(I, mod(n, N)))
+immutable ZField{N, I<:Integer} <: Z{N,I}
+    i::I
+end
 
-# TODO - more aliases?
-typealias GF{N} Z{N, Int}
-typealias GF2 GF{2}
+# but typically you would use one of these contructors
 
-showcompact{N,I}(io::IO, z::Z{N,I}) = print(io, string(z.n))
-show{N,I}(io::IO, z::Z{N,I}) = print(io, "$(z.n) mod $N")
+ZR{I<:Integer}(n::Int, i, ::Type{I}) = ZRing{n,I}(validate(n, convert(I, i)))
+ZR(n::Int, i::Integer) = ZRing{n, typeof(i)}(validate(n, i))
+ZF{I<:Integer}(n::Int, i, ::Type{I}) = ZField{n,I}(validate(n, convert(I, i)))
+ZF(n::Int, i::Integer) = ZField{n, typeof(i)}(validate(n, i))
+Z2(n) = ZF(2, n)
+GF2 = Z2
 
-# there is no conversion between different parameterisations of Z and
-# equality is strictly for matching types.
-=={N,I}(a::Z{N,I}, b::Z{N,I}) = a.n == b.n
-<{N,I}(a::Z{N,I}, b::Z{N,I}) = a.n < b.n
-real{N,I}(a::Z{N,I}) = a
-abs{N,I}(a::Z{N,I}) = a
-zero{N,I}(::Type{Z{N,I}}) = Z{N,I}(zero(I))
-one{N,I}(::Type{Z{N,I}}) = Z{N,I}(one(I))
+zero{N,I}(::Type{ZRing{N,I}}) = ZRing{N,I}(zero(I))
+one{N,I}(::Type{ZRing{N,I}}) = ZRing{N,I}(one(I))
+zero{N,I}(::Type{ZField{N,I}}) = ZField{N,I}(zero(I))
+one{N,I}(::Type{ZField{N,I}}) = ZField{N,I}(one(I))
 
-# we do allow promotion to Int/Uint (necessary for linalg to work)
-promote_rule{N,I<:Unsigned}(::Type{Z{N,I}},::Type{Uint}) = Uint
-promote_rule{N,I<:Integer}(::Type{Z{N,I}},::Type{Int}) = Int
-convert{N,I<:Unsigned}(::Type{Uint}, a::Z{N,I}) = convert(Uint, a.n)
-convert{N,I<:Integer}(::Type{Int}, a::Z{N,I}) = convert(Int, a.n)
+function validate(n, i)
+    @assert n > 0 "modulus ($n) too small"
+    @assert n <= typemax(typeof(i)) "modulus ($n) too large for $(typeof(i))"
+    mod(i, n)
+end
 
-# TODO - worry about overflow?  negative values?  or trust the user?
--{N,I}(a::Z{N,I}) = Z{N,I}(convert(I, mod(-a.n, N)))
-+{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.n + b.n, N)))
--{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.n - b.n, N)))
-*{N,I}(a::Z{N,I}, b::Z{N,I}) = Z{N,I}(convert(I, mod(a.n * b.n, N)))
+convert{X<:Integer}(::Type{X}, z::ZRing) = convert(X, z.i)
+convert{X<:Integer}(::Type{X}, z::ZField) = convert(X, z.i)
+modulus{N, I}(::ZRing{N, I}) = N
+modulus{N, I}(::ZField{N, I}) = N
+
+showcompact{N,I}(io::IO, z::Z{N,I}) = showcompact(op, convert(I, z))
+show{N,I}(io::IO, z::Z{N,I}) = print(io, "$(convert(I, z)) mod $(modulus(z))")
+
+=={N,I}(a::Z{N,I}, b::Z{N,I}) = convert(I, a) == convert(I, b)  # equal N
+<{N,I}(a::Z{N,I}, b::Z{N,I}) = convert(I, a) < convert(I, b)
+
+real{N,I}(a::Z{N,I}) = real(convert(I, a))
+abs{N,I}(a::Z{N,I}) = abs(convert(I, a))
+
+promote_rule{N, I<:Unsigned}(::Type{ZField{N,I}}, ::Type{Uint}) = Uint
+promote_rule{N, I<:Integer}(::Type{ZField{N,I}}, ::Type{Int}) = Int
+promote_rule{N, I<:Unsigned}(::Type{ZRing{N,I}}, ::Type{Uint}) = Uint
+promote_rule{N, I<:Integer}(::Type{ZRing{N,I}}, ::Type{Int}) = Int
+
+lift(c, n, i, f, a) = c(convert(i, mod(f(convert(i, a)), n)))
+lift(c, n, i, f, a, b) = c(convert(i, mod(f(convert(i, a), convert(i, b)), n)))
+-{N,I}(a::ZRing{N,I}) = lift(ZRing{N,I}, N, I, -, a)
+-{N,I}(a::ZField{N,I}) = lift(ZField{N,I}, N, I, -, a)
++{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = lift(ZRing{N,I}, N, I, +, a, b)
++{N,I}(a::ZField{N,I}, b::ZField{N,I}) = lift(ZField{N,I}, N, I, +, a, b)
+-{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = lift(ZRing{N,I}, N, I, -, a, b)
+-{N,I}(a::ZField{N,I}, b::ZField{N,I}) = lift(ZField{N,I}, N, I, -, a, b)
+*{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = lift(ZRing{N,I}, N, I, *, a, b)
+*{N,I}(a::ZField{N,I}, b::ZField{N,I}) = lift(ZField{N,I}, N, I, *, a, b)
+^{N,I}(a::ZRing{N,I}, n::Integer) = lift(ZRing{N,I}, N, I, x -> powermod(x, n, N), a)
+^{N,I}(a::ZField{N,I}, n::Integer) = lift(ZField{N,I}, N, I, x -> powermod(x, n, N), a)
 
 # http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Modular_integers
 function inverse{I<:Integer}(a::I, n::I)
@@ -67,50 +107,43 @@ function inverse{I<:Integer}(a::I, n::I)
     t < 0 ? t + n : t
 end
 
-# TODO - cache values
-inv{N,I}(a::Z{N,I}) = Z{N,I}(inverse(a.n, convert(I, N)))
+inv{N,I}(a::ZRing{N,I}) = ZRing{N,I}(inverse(N, convert(I, N)))
+inv{N,I}(a::ZField{N,I}) = a^(N-2)
 /{N,I}(a::Z{N,I}, b::Z{N,I}) = a * inv(b)
-
-function ^{N,I}(a::Z{N,I}, p::Integer)
-    if p == 0
-        one(Z{N,I})
-    elseif p < 0
-        Z(N, powermod(inv(a).n, abs(p), N))
-    else
-        Z(N, powermod(a.n, p, N))
-    end
-end
 
 
 function test_constructor()
 
-    @assert string(Z{3,Int}(2)) == "2 mod 3"
-    @assert string(Z(4, 0x3)) == "3 mod 4"
-    @assert string(GF2(1)) == "1 mod 2"
-    @assert GF2(1) == GF{2}(1) == Z{2,Int}(1) == Z(2, 1)
+    @assert string(ZR(3, 2, Int)) == "2 mod 3"
+    @assert string(ZR(3, 2)) == "2 mod 3"
+    @assert string(ZF(3, 2, Int)) == "2 mod 3"
+    @assert string(ZF(3, 2)) == "2 mod 3"
 
-    @assert isa(Z(4, 0x3).n, Uint8)
+    @assert GF2(1) == Z2(1) == ZField{2,Int}(1) == ZF(2, 1)
+
+    @assert isa(ZR(4, 0x3).i, Uint8)
 
     try
-        bad = Z{1, Int}(2)
+        bad = ZR(256, 0x0)
         error("expected failure")
     catch e
         @assert isa(e, ErrorException)
         @assert search(string(e), "too large") != 0:-1 
     end
-
     println("test_constructor ok")
 end
 
 function test_arithmetic()
 
     @assert GF2(1) + GF2(1) == GF2(0)
-    @assert zero(Z{5,Int}) - one(Z{5,Int}) == Z(5, 4)
-    @assert inv(GF{5}(3)) == GF{5}(2)
-    @assert GF{5}(3) * GF{5}(2) == one(GF{5})
+    @assert zero(ZRing{5,Int}) - one(ZRing{5,Int}) == ZR(5, 4)
+    @assert zero(ZField{5,Int}) - one(ZField{5,Int}) == ZF(5, 4)
+    @assert inv(ZF(5, 3)) == ZF(5, 2)
+    @assert ZF(5, 3) * ZF(5, 2) == one(ZField{5, Int})
+    @assert GF2(0)^0 == GF2(1)
 
     try
-        inv(GF{6}(2))
+        inv(ZR(6, 2))
         error("expected failure")
     catch e
         @assert isa(e, ErrorException)
@@ -122,14 +155,15 @@ end
 
 function test_matrix_inverse()
 
-    A = [one(GF2) one(GF2);
-         zero(GF2) one(GF2)]
-    b = [one(GF2), one(GF2)]
-    x = A\b
-    @assert x == [zero(GF2), one(GF2)]
+    l, o = GF2(1), GF2(0)
 
-    # http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation
-    l, o = one(GF2), zero(GF2)
+    A = [l l;
+         o l]
+    b = [l, l]
+    x = A\b
+    @assert x == [o, l]
+
+    # http://math.stackexchange.com/questions/169921/how-to-solve-system-of-li#near-equations-of-xor-operation
     A = [l l l o; 
          l l o l;
          l o l l;
@@ -143,12 +177,12 @@ end
 
 function test_power()
 
-    # http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics
-    base = Z(23, 5)
-    @assert (base^6).n == 8
-    @assert (base^15).n == 19
-    @assert ((base^15)^6).n == 2
-    @assert ((base^6)^15).n == 2
+    # http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explana#tion_including_encryption_mathematics
+    base = ZF(23, 5)
+    @assert (base^6).i == 8
+    @assert (base^15).i == 19
+    @assert ((base^15)^6).i == 2
+    @assert ((base^6)^15).i == 2
 
     println("test_power ok")
 end
@@ -163,4 +197,3 @@ end
 tests()
 
 end
-
