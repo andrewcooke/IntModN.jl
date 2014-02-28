@@ -91,8 +91,8 @@ lift(c, n, i, f, a, b) = c(convert(i, mod(f(convert(i, a), convert(i, b)), n)))
 -{N,I}(a::ZField{N,I}, b::ZField{N,I}) = lift(ZField{N,I}, N, I, -, a, b)
 *{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = lift(ZRing{N,I}, N, I, *, a, b)
 *{N,I}(a::ZField{N,I}, b::ZField{N,I}) = lift(ZField{N,I}, N, I, *, a, b)
-^{N,I}(a::ZRing{N,I}, n::Integer) = lift(ZRing{N,I}, N, I, x -> powermod(x, n, N), a)
-^{N,I}(a::ZField{N,I}, n::Integer) = lift(ZField{N,I}, N, I, x -> powermod(x, n, N), a)
+^{N,I}(a::ZRing{N,I}, p::Integer) = lift(ZRing{N,I}, N, I, x -> powermod(x, p, N), a)
+^{N,I}(a::ZField{N,I}, p::Integer) = lift(ZField{N,I}, N, I, x -> powermod(x, p, N), a)
 
 # http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Modular_integers
 function inverse{I<:Integer}(a::I, n::I)
@@ -177,7 +177,7 @@ end
 
 function test_power()
 
-    # http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explana#tion_including_encryption_mathematics
+    # http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics
     base = ZF(23, 5)
     @assert (base^6).i == 8
     @assert (base^15).i == 19
