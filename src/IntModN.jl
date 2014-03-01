@@ -44,7 +44,7 @@ immutable ZField{N, I<:Integer} <: Z{N,I}
     i::I
 end
 
-# but typically you would use one of these contructors
+# but typically you would use one of these constructors
 
 ZR{I<:Integer}(n::Int, i, ::Type{I}) = ZRing{n,I}(validate(n, convert(I, i)))
 ZR(n::Int, i::Integer) = ZRing{n, typeof(i)}(validate(n, i))
@@ -52,6 +52,8 @@ ZF{I<:Integer}(n::Int, i, ::Type{I}) = ZField{n,I}(validate(n, convert(I, i)))
 ZF(n::Int, i::Integer) = ZField{n, typeof(i)}(validate(n, i))
 Z2(n) = ZF(2, n)
 GF2 = Z2
+
+# and all the methods that make this a number
 
 zero{N,I}(::Type{ZRing{N,I}}) = ZRing{N,I}(zero(I))
 one{N,I}(::Type{ZRing{N,I}}) = ZRing{N,I}(one(I))
@@ -73,10 +75,11 @@ showcompact{N,I}(io::IO, z::Z{N,I}) = showcompact(op, convert(I, z))
 show{N,I}(io::IO, z::Z{N,I}) = print(io, "$(convert(I, z)) mod $(modulus(z))")
 
 =={N,I}(a::Z{N,I}, b::Z{N,I}) = convert(I, a) == convert(I, b)  # equal N
+<={N,I}(a::Z{N,I}, b::Z{N,I}) = convert(I, a) <= convert(I, b)
 <{N,I}(a::Z{N,I}, b::Z{N,I}) = convert(I, a) < convert(I, b)
 
-real{N,I}(a::Z{N,I}) = real(convert(I, a))
-abs{N,I}(a::Z{N,I}) = abs(convert(I, a))
+real{N,I}(a::Z{N,I}) = a
+abs{N,I}(a::Z{N,I}) = a
 
 promote_rule{N, I<:Unsigned}(::Type{ZField{N,I}}, ::Type{Uint}) = Uint
 promote_rule{N, I<:Integer}(::Type{ZField{N,I}}, ::Type{Int}) = Int
@@ -114,7 +117,7 @@ inv{N,I}(a::ZField{N,I}) = a^(N-2)
 /{N,I}(a::Z{N,I}, b::Z{N,I}) = a * inv(b)
 
 
-function test_constructor()
+function test_z_constructor()
 
     @assert string(ZR(3, 2, Int)) == "2 mod 3"
     @assert string(ZR(3, 2)) == "2 mod 3"
@@ -132,10 +135,10 @@ function test_constructor()
         @assert isa(e, ErrorException)
         @assert search(string(e), "too large") != 0:-1 
     end
-    println("test_constructor ok")
+    println("test_z_constructor ok")
 end
 
-function test_arithmetic()
+function test_z_arithmetic()
 
     @assert GF2(1) + GF2(1) == GF2(0)
     @assert zero(ZRing{5,Int}) - one(ZRing{5,Int}) == ZR(5, 4)
@@ -152,10 +155,10 @@ function test_arithmetic()
         @assert search(string(e), "not invertible") != 0:-1 
     end
 
-    println("test_arithmetic ok")
+    println("test_z_arithmetic ok")
 end
 
-function test_matrix_inverse()
+function test_z_matrix_inverse()
 
     l, o = GF2(1), GF2(0)
 
@@ -174,10 +177,10 @@ function test_matrix_inverse()
     x = A\b
     @assert x == [o, l, o, o]
 
-    println("test_matrix_inverse ok")
+    println("test_z_matrix_inverse ok")
 end
 
-function test_power()
+function test_z_power()
 
     # http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics
     base = ZF(23, 5)
@@ -186,24 +189,87 @@ function test_power()
     @assert ((base^15)^6).i == 2
     @assert ((base^6)^15).i == 2
 
-    println("test_power ok")
+    println("test_z_power ok")
 end
 
-function test_coverage()
+function test_z_coverage()
     println("Integer", methodswithdescendants(Integer, lim=20))
     println("ZRing", methodswithdescendants(ZRing, lim=20))
-    println("test_coverage ok")
+    println("test_z_coverage ok")
+end
+
+function tests_z()
+    test_z_constructor()
+    test_z_arithmetic()
+    test_z_matrix_inverse()
+    test_z_power()
+    test_z_coverage()
+end
+
+
+# --- polynomials over integers modulo n
+
+abstract P{N, T<:Z}
+
+immutable PRing{N, T<:Z} <:P{N, T}    
+    a::Array{T,1}
+    function PRing(a)
+        if length(a) != N
+            error("wrong length ($N != length($a))")
+        end
+        new(a)
+    end
+end
+
+# constructors
+
+PR{T<:Z}(a::T...) = PRing{length(a), T}([a...])
+function PGF2(n::Int, indices::Int...)  # indices are 1-indexed
+    a, o = zeros(ZField{2,Int}, n), GF2(1)
+    for i in indices
+        a[i] = o
+    end
+    PR(a...)
+end
+
+# number methods
+
+zero{N,T<:Z}(::Type{PRing{N,T}}) = PRing{N,T}(zeros(T, N))
+one{N,T<:Z}(::Type{PRing{N,T}}) = PRing{N,T}(ones(T, N))
+
+# does not create a new copy
+convert{N,T<:Z}(::Type{Array{T,1}}, a::PRing{N,T}) = a.a
+
+# TODO show
+showcompact{N,T<:Z}(io::IO, p::P{N,T}) = showcompact(op, convert(Array{T,1}, p))
+
+=={N,T<:Z}(a::P{N,T}, b::P{N,T}) = a.a == b.a
+<={N,T<:Z}(a::P{N,T}, b::P{N,T}) = a.a <= b.a
+<{N,T<:Z}(a::P{N,T}, b::P{N,T}) = a.a < b.a
+
+
+function test_p_constructor()
+    @assert PRing{2,ZField{2,Int}}([GF2(0), GF2(1)]) == PR(GF2(0), GF2(1)) == PGF2(2, 2)
+    @assert PR(GF2(0), GF2(0)) == zero(PRing{2, ZField{2,Int}})
+    println("test_p_constructor ok")
+end
+
+function test_p_type()
+    @assert convert(Array{ZField{2,Int},1}, PGF2(2)) == [GF2(0), GF2(0)]
+    println("test_p_type ok")
+end
+
+function tests_p()
+    test_p_constructor()
+    test_p_type()
 end
 
 function tests()
-    test_constructor()
-    test_arithmetic()
-    test_matrix_inverse()
-    test_power()
-    test_coverage()
+    tests_z()
+    tests_p()
 end
 
 # run by travis (see .travis.yml in root dir)
-tests()
+#tests()
 
 end
