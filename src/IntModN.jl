@@ -21,7 +21,7 @@ module IntModN
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
-using TypeCheck
+#using TypeCheck
 
 export Z, ZField, ZRing, ZR, ZF, GF2
 
@@ -71,7 +71,7 @@ convert{X<:Integer}(::Type{X}, z::ZField) = convert(X, z.i)
 modulus{N, I}(::ZRing{N, I}) = N
 modulus{N, I}(::ZField{N, I}) = N
 
-showcompact{N,I}(io::IO, z::Z{N,I}) = showcompact(op, convert(I, z))
+showcompact{N,I}(io::IO, z::Z{N,I}) = showcompact(io, convert(I, z))
 show{N,I}(io::IO, z::Z{N,I}) = print(io, "$(convert(I, z)) mod $(modulus(z))")
 
 =={N,I}(a::Z{N,I}, b::Z{N,I}) = convert(I, a) == convert(I, b)  # equal N
@@ -203,7 +203,7 @@ function tests_z()
     test_z_arithmetic()
     test_z_matrix_inverse()
     test_z_power()
-    test_z_coverage()
+#    test_z_coverage()
 end
 
 
@@ -214,7 +214,7 @@ abstract P{N, T<:Z}
 immutable PRing{N, T<:Z} <:P{N, T}    
     a::Array{T,1}
     function PRing(a)
-        if length(a) != N
+        if length(a) != N || N <= 0
             error("wrong length ($N != length($a))")
         end
         new(a)
@@ -240,8 +240,21 @@ one{N,T<:Z}(::Type{PRing{N,T}}) = PRing{N,T}(ones(T, N))
 # does not create a new copy
 convert{N,T<:Z}(::Type{Array{T,1}}, a::PRing{N,T}) = a.a
 
-# TODO show
-showcompact{N,T<:Z}(io::IO, p::P{N,T}) = showcompact(op, convert(Array{T,1}, p))
+showcompact{N,T<:Z}(io::IO, p::PRing{N,T}) = showcompact(io, convert(Array{T,1}, p))
+function show{N,T<:Z}(io::IO, p::PRing{N,T})
+    for (i, x) in enumerate(p.a)
+        if i > 1
+            print(io, " + ")
+        end
+        showcompact(io, x)
+        if i == 2
+            print(io, " x")
+        elseif i > 2
+            print(io, " x^$(i-1)")
+        end
+    end
+    print(io, " mod $(modulus(p.a[1]))")  # array length > 0
+end
 
 =={N,T<:Z}(a::P{N,T}, b::P{N,T}) = a.a == b.a
 <={N,T<:Z}(a::P{N,T}, b::P{N,T}) = a.a <= b.a
@@ -256,6 +269,7 @@ end
 
 function test_p_type()
     @assert convert(Array{ZField{2,Int},1}, PGF2(2)) == [GF2(0), GF2(0)]
+    @assert string(PGF2(3,1)) == "1 + 0 x + 0 x^2 mod 2" 
     println("test_p_type ok")
 end
 
@@ -270,6 +284,6 @@ function tests()
 end
 
 # run by travis (see .travis.yml in root dir)
-#tests()
+tests()
 
 end
