@@ -194,6 +194,7 @@ function tests()
     test_power()
 end
 
-tests()
+# run by travis (see .travis.yml in root dir)
+#tests()
 
 end
