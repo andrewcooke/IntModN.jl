@@ -20,6 +20,8 @@ module IntModN
 
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule
+# Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
+using TypeCheck
 
 export Z, ZField, ZRing, ZR, ZF, GF2
 
@@ -187,14 +189,21 @@ function test_power()
     println("test_power ok")
 end
 
+function test_coverage()
+    println("Integer", methodswithdescendants(Integer, lim=20))
+    println("ZRing", methodswithdescendants(ZRing, lim=20))
+    println("test_coverage ok")
+end
+
 function tests()
     test_constructor()
     test_arithmetic()
     test_matrix_inverse()
     test_power()
+    test_coverage()
 end
 
 # run by travis (see .travis.yml in root dir)
-#tests()
+tests()
 
 end
