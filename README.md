@@ -1,6 +1,6 @@
 # IntModN.jl
 
-eA pragmatic (meaning incomplete, and written by someone who needed this before
+A pragmatic (meaning incomplete, and written by someone who needed this before
 he fully understood it) library for doing modular arithmetic.
 
 The aim is not to encapsulate a large amount of theory, or to describe the
