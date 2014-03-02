@@ -214,9 +214,8 @@ abstract P{N, T<:Z}
 immutable PRing{N, T<:Z} <:P{N, T}    
     a::Array{T,1}
     function PRing(a)
-        if length(a) != N || N <= 0
-            error("wrong length ($N != length($a))")
-        end
+        @assert length(a) == N "wrong length ($N != length($a))"
+        @assert N > 0 "empty polynomial"
         new(a)
     end
 end
@@ -277,6 +276,7 @@ function tests_p()
     test_p_constructor()
     test_p_type()
 end
+
 
 function tests()
     tests_z()
