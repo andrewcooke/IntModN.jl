@@ -19,7 +19,7 @@ See the
 ### Simultaneous Equations in GF(2)
 
 Answering [this
-question](http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation)
+question](http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation):
 
 ```
 @zfield 2 begin
@@ -37,5 +37,7 @@ end
 
 MIT Licence; (c) 2014 Andrew Cooke andrew@acooke.org
 
-[![Build Status](https://travis-ci.org/andrewcooke/IntModN.jl.png)](https://travis-ci.org/andrewcooke/IntModN.jl)
+[![Build
+Status](https://travis-ci.org/andrewcooke/IntModN.jl.png)](https://travis-ci.org/andrewcooke/IntModN.jl)
+Julia 0.3 (trunk).
  
