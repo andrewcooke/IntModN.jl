@@ -18,6 +18,20 @@ of integers are supported.
 See the
 [tests](https://github.com/andrewcooke/IntModN.jl/blob/master/src/IntModN.jl).
 
+### Matrix inversion in GF(2)
+
+```
+@zfield 2 begin
+    A = [1 1 1 0; 
+	 1 1 0 1;
+	 1 0 1 1;
+	 0 1 1 1]
+    b = [1, 1, 0, 1]
+    x = A\b
+    @assert x == [0, 1, 0, 0]
+end
+```
+
 ## Licence
 
 MIT Licence; (c) 2014 Andrew Cooke andrew@acooke.org
