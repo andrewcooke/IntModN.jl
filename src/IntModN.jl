@@ -234,7 +234,7 @@ end
 # number methods
 
 zero{N,T<:Z}(::Type{PRing{N,T}}) = PRing{N,T}(zeros(T, N))
-one{N,T<:Z}(::Type{PRing{N,T}}) = PRing{N,T}(ones(T, N))
+one{N,T<:Z}(::Type{PRing{N,T}}) = PRing{N,T}(ones(T, N))  # maybe 0...01?
 
 # does not create a new copy
 convert{N,T<:Z}(::Type{Array{T,1}}, a::PRing{N,T}) = a.a
