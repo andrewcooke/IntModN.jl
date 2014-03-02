@@ -19,7 +19,7 @@ See the
 ### Simultaneous Equations in GF(2)
 
 Answering [this
-question](http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics).
+question](http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation)
 
 ```
 @zfield 2 begin

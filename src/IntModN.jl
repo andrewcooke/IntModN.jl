@@ -191,7 +191,7 @@ function test_z_matrix_inverse()
         @assert x == [0, 1]
     end
 
-    # http://math.stackexchange.com/questions/169921/how-to-solve-system-of-li#near-equations-of-xor-operation
+    # http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation
     @zfield 2 begin
         A = [1 1 1 0; 
              1 1 0 1;
