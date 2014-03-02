@@ -16,7 +16,7 @@ polynomials).  At the moment only rings and fields of integers are supported.
 See the
 [tests](https://github.com/andrewcooke/IntModN.jl/blob/master/src/IntModN.jl).
 
-### Matrix inversion in GF(2)
+### Simultaneous Equations in GF(2)
 
 Answering [this
 question](http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics).
