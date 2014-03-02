@@ -18,7 +18,8 @@ See the
 
 ### Matrix inversion in GF(2)
 
-Solving [this question](http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics).
+Answering [this
+question](http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange#Explanation_including_encryption_mathematics).
 
 ```
 @zfield 2 begin
