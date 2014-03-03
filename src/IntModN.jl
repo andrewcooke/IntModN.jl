@@ -70,9 +70,9 @@ end
 
 convert{X<:Integer}(::Type{X}, z::ZRing) = convert(X, z.i)
 convert{X<:Integer}(::Type{X}, z::ZField) = convert(X, z.i)
-modulus{N, I}(::Type{Z{N, I}}) = N
 modulus{N, I}(::ZRing{N, I}) = N
 modulus{N, I}(::ZField{N, I}) = N
+modulus{T<:Z}(::Type{T}) = (zero(T) - one(T)).i + 1
 
 showcompact{N,I}(io::IO, z::Z{N,I}) = showcompact(io, convert(I, z))
 show{N,I}(io::IO, z::Z{N,I}) = print(io, "$(convert(I, z)) mod $(modulus(z))")
@@ -187,25 +187,25 @@ end
 
 function test_z_matrix_inverse()
 
-#    @zfield 2 begin
-#        A = [1 1;
-#             0 1]
-#        b = [1, 1]
-#        x = A\b
-#        @assert x == [0, 1]
-#    end
-#
-#    # http://math.stackexchange.com/questions/169921/how-to-solve-system-of-li#near-equations-of-xor-operation
-#    @zfield 2 begin
-#        A = [1 1 1 0; 
-#             1 1 0 1;
-#             1 0 1 1;
-#             0 1 1 1]
-#        b = [1, 1, 0, 1]
-#        x = A\b
-#        @assert x == [0, 1, 0, 0]
-#    end
-#
+    @zfield 2 begin
+        A = [1 1;
+             0 1]
+        b = [1, 1]
+        x = A\b
+        @assert x == [0, 1]
+    end
+
+    # http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation
+    @zfield 2 begin
+        A = [1 1 1 0; 
+             1 1 0 1;
+             1 0 1 1;
+             0 1 1 1]
+        b = [1, 1, 0, 1]
+        x = A\b
+        @assert x == [0, 1, 0, 0]
+    end
+
     println("test_z_matrix_inverse ok")
 end
 
@@ -222,16 +222,16 @@ function test_z_power()
 end
 
 function test_z_macros()
-#    begin
-#        b = 7
-#    end
-#    @assert b == 7 
-#    @zfield 5  begin
-#        b = 1 + 2 * 3
-#        a = b / 3
-#    end
-#    @assert a == ZF(5, 4)
-#    @assert ZR(3, 2) == @zring 3 1 + 4
+    begin
+        b = 7
+    end
+    @assert b == 7 
+    @zfield 5  begin
+        b = 1 + 2 * 3
+        a = b / 3
+    end
+    @assert a == ZF(5, 4)
+    @assert ZR(3, 2) == @zring 3 1 + 4
     println("test_z_macros ok")
 end
 
@@ -253,82 +253,89 @@ end
 
 # --- polynomials over integers modulo n
 
-immutable P{T<:Z}
+immutable ZPoly{T<:Z}
     a::Array{T,1}
-    P(a) = length(a) == 0 || a[length(a)] != 0 ? new(a) : error("zero leading coeff")
+    ZPoly(a) = length(a) == 0 || a[length(a)] != 0 ? new(a) : error("zero leading coeff")
 end
 
 # constructors
 
-function Poly{I<:Integer}(c::Function, coeffs::(I, Int)...)
+ZP(c::Function) = error("provide at least one (zero?) coeff")
+function ZP{I<:Integer}(c::Function, coeffs::(I, Int)...)
     coeffs = collect(filter(c -> c[2] > 0, coeffs))
-    m = maximum([i for (i, n) in coeffs])
+    m = length(coeffs) == 0 ? 0 : maximum([i for (i, n) in coeffs])
     t = typeof(c(zero(I)))
     a = zeros(t, m)
     for (i, n) in coeffs
         a[i] = c(n)
     end
-    P{t}(a)
+    ZPoly{t}(a)
 end
+ZP{I<:Integer}(c::Function, i::I...) = ZP(c, enumerate(i)...)
 
-function Poly{I<:Integer}(c::Function, coeffs::(I, Int)...)
-end
 
 # number methods
 
-zero{T<:Z}(::Type{P{T}}) = P(T[])
-one{T<:Z}(::Type{P{T}}) = P([one(T)])
+zero{T<:Z}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
+one{T<:Z}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
 
 # does not create a new copy
-convert{T<:Z}(::Type{Array{T,1}}, a::P{T}) = a.a
+convert{T<:Z}(::Type{Array{T,1}}, a::ZPoly{T}) = a.a
 
-showcompact{T<:Z}(io::IO, p::P{T}) = showcompact(io, convert(Array{T,1}, p))
+showcompact{T<:Z}(io::IO, p::ZPoly{T}) = showcompact(io, convert(Array{T,1}, p))
 
-function show{T<:Z}(io::IO, p::P{T})
+function show{T<:Z}(io::IO, p::ZPoly{T})
     n = length(p.a)
     if n == 0
        print(io, "0")
     else
         for i in n:-1:1
-            if i < n
-                print(io, " + ")
-            end
-            showcompact(io, p.a[i])
-            if i == 2
-                print(io, " x")
-            elseif i > 2
-                print(io, " x^$(i-1)")
+            if p.a[i] > zero(T)
+                if i < n
+                    print(io, " + ")
+                end
+                if p.a[i] > one(T) || i == 1
+                    showcompact(io, p.a[i])
+                    if i > 1
+                        print(io, " ")
+                    end
+                end
+                if i == 2
+                    print(io, "x")
+                elseif i > 2
+                    print(io, "x^$(i-1)")
+                end
             end
         end
     end
     print(io, " mod $(modulus(T))")
 end
 
-=={T<:Z}(a::P{T}, b::P{T}) = a.a == b.a
-<={T<:Z}(a::P{T}, b::P{T}) = a.a <= b.a
-<{T<:Z}(a::P{T}, b::P{T}) = a.a < b.a
+=={T<:Z}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
+<={T<:Z}(a::ZPoly{T}, b::ZPoly{T}) = a.a <= b.a
+<{T<:Z}(a::ZPoly{T}, b::ZPoly{T}) = a.a < b.a
 
 liftp(c, f, a) = c(f(a.a))
 liftp(c, f, a, b) = c(f(a.a, b.a))
--{T<:Z}(a::P{T}) = liftp(P{T}, -, a)
-+{T<:Z}(a::P{T}, b::P{T}) = liftp(P{T}, +, a, b)
--{T<:Z}(a::P{T}, b::P{T}) = liftp(P{T}, -, a, b)
+-{T<:Z}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
++{T<:Z}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, +, a, b)
+-{T<:Z}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, -, a, b)
 
 
 function test_p_constructor()
-    @assert P{ZField{2,Int}}([GF2(0), GF2(1)]) == Poly(ZF(2), (2, 1))
-    @assert Poly(GF2(0), GF2(0)) == zero(PRing{2, ZField{2,Int}})
+    @assert ZPoly{ZField{2,Int}}([GF2(0), GF2(1)]) == ZP(ZF(2), (2, 1))
+    @assert ZP(GF2, 0, 0, 0) == zero(ZPoly{ZField{2,Int}})
     println("test_p_constructor ok")
 end
 
 function test_p_type()
-    @assert convert(Array{ZField{2,Int},1}, PGF2(2)) == [GF2(0), GF2(0)]
-    @assert string(PGF2(3,1)) == "0 x^2 + 0 x + 1 mod 2" 
+    @assert convert(Array{ZField{2,Int},1}, ZP(GF2, 0, 1)) == [GF2(0), GF2(1)]
+    @assert string(ZP(GF2, 1, 0, 1)) == "x^2 + 1 mod 2"
     println("test_p_type ok")
 end
 
 function test_p_arithmetic()
-    @assert PGF2(4,1) + PGF2(4,3,1) == PGF2(4,3)
+    @assert ZP(GF2, (4,1), (1,1)) + ZP(GF2, (3,1), (1,1)) == ZP(GF2, 0, 0, 1, 1)
     println("test_p_arithmetic ok")
 end
 
