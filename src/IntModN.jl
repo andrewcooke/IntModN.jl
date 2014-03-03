@@ -260,19 +260,20 @@ end
 
 # constructors
 
+ZP() = error("provide at least one (zero?) coeff")
 ZP(c::Function) = error("provide at least one (zero?) coeff")
-function ZP{I<:Integer}(c::Function, coeffs::(I, Int)...)
-    coeffs = collect(filter(c -> c[2] > 0, coeffs))
-    m = length(coeffs) == 0 ? 0 : maximum([i for (i, n) in coeffs])
-    t = typeof(c(zero(I)))
-    a = zeros(t, m)
-    for (i, n) in coeffs
-        a[i] = c(n)
+function ZP{T<:ZModN}(coeffs::(Int, T)...)
+    coeffs = collect(filter(c -> c[2] > zero(T), coeffs))
+    m = length(coeffs) == 0 ? 0 : maximum([i for (i, z) in coeffs])
+    a = zeros(T, m)
+    for (i, z) in coeffs
+        a[i] = z
     end
-    ZPoly{t}(a)
+    ZPoly{T}(a)
 end
+ZP{I<:Integer}(c::Function, coeffs::(Int, I)...) = ZP([(i, c(n)) for (i, n) in coeffs]...)
+ZP{T<:ZModN}(z::T...) = ZP(enumerate(z)...)
 ZP{I<:Integer}(c::Function, i::I...) = ZP(c, enumerate(i)...)
-
 
 # number methods
 
@@ -326,6 +327,9 @@ liftp(c, f, a, b) = c(f(a.a, b.a))
 function test_p_constructor()
     @assert ZPoly{ZField{2,Int}}([GF2(0), GF2(1)]) == ZP(ZF(2), (2, 1))
     @assert ZP(GF2, 0, 0, 0) == zero(ZPoly{ZField{2,Int}})
+    @zfield 3 begin
+        @assert ZP(1,2,3,4) == ZP(1,2,0,1)
+    end
     println("test_p_constructor ok")
 end
 
