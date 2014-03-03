@@ -23,7 +23,7 @@ import Base: show, showcompact, zero, one, inv, real, abs, convert,
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
 
-export Z, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield
+export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield
 
 
 # --- integers modulo n
@@ -31,16 +31,16 @@ export Z, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield
 #     we need two types here because prime moduli have a faster inverse
 #     (via euler's theorem) (note - we do NOT test for primality).
 
-abstract Z{N, I<:Integer} <: Number
+abstract ZModN{N, I<:Integer} <: Number
 
 # you can construct these directly, but code assumes that the integer is
 # already reduced mod N, that capacities are ok, etc.
 
-immutable ZRing{N, I<:Integer} <: Z{N,I}
+immutable ZRing{N, I<:Integer} <: ZModN{N,I}
     i::I
 end
 
-immutable ZField{N, I<:Integer} <: Z{N,I}
+immutable ZField{N, I<:Integer} <: ZModN{N,I}
     i::I
 end
 
@@ -70,19 +70,19 @@ end
 
 convert{X<:Integer}(::Type{X}, z::ZRing) = convert(X, z.i)
 convert{X<:Integer}(::Type{X}, z::ZField) = convert(X, z.i)
-modulus{N, I<:Integer}(::Type{Z{N, I}}) = N
-modulus{T<:Z}(::Type{T}) = modulus(super(T))  # jameson type chain
-modulus{T<:Z}(::T) = modulus(T)
+modulus{N, I<:Integer}(::Type{ZModN{N, I}}) = N
+modulus{T<:ZModN}(::Type{T}) = modulus(super(T))  # jameson type chain
+modulus{T<:ZModN}(::T) = modulus(T)
 
-showcompact{N,I}(io::IO, z::Z{N,I}) = showcompact(io, convert(I, z))
-show{N,I}(io::IO, z::Z{N,I}) = print(io, "$(convert(I, z)) mod $(modulus(z))")
+showcompact{N,I}(io::IO, z::ZModN{N,I}) = showcompact(io, convert(I, z))
+show{N,I}(io::IO, z::ZModN{N,I}) = print(io, "$(convert(I, z)) mod $(modulus(z))")
 
-=={N,I}(a::Z{N,I}, b::Z{N,I}) = convert(I, a) == convert(I, b)  # equal N
-<={N,I}(a::Z{N,I}, b::Z{N,I}) = convert(I, a) <= convert(I, b)
-<{N,I}(a::Z{N,I}, b::Z{N,I}) = convert(I, a) < convert(I, b)
+=={N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = convert(I, a) == convert(I, b)  # equal N
+<={N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = convert(I, a) <= convert(I, b)
+<{N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = convert(I, a) < convert(I, b)
 
-real{N,I}(a::Z{N,I}) = a
-abs{N,I}(a::Z{N,I}) = a
+real{N,I}(a::ZModN{N,I}) = a
+abs{N,I}(a::ZModN{N,I}) = a
 
 promote_rule{N, I<:Unsigned}(::Type{ZField{N,I}}, ::Type{Uint}) = Uint
 promote_rule{N, I<:Integer}(::Type{ZField{N,I}}, ::Type{Int}) = Int
@@ -117,7 +117,7 @@ end
 
 inv{N,I}(a::ZRing{N,I}) = ZRing{N,I}(inverse(N, convert(I, N)))
 inv{N,I}(a::ZField{N,I}) = a^(N-2)
-/{N,I}(a::Z{N,I}, b::Z{N,I}) = a * inv(b)
+/{N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = a * inv(b)
 
 # rewrite literals mod n 
 # (these rewrite ALL ints, including args to literal ZF(...), etc)
@@ -253,7 +253,7 @@ end
 
 # --- polynomials over integers modulo n
 
-immutable ZPoly{T<:Z}
+immutable ZPoly{T<:ZModN}
     a::Array{T,1}
     ZPoly(a) = length(a) == 0 || a[end] > zero(T) ? new(a) : error("zero leading coeff")
 end
@@ -276,16 +276,16 @@ ZP{I<:Integer}(c::Function, i::I...) = ZP(c, enumerate(i)...)
 
 # number methods
 
-zero{T<:Z}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
-one{T<:Z}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
+zero{T<:ZModN}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
+one{T<:ZModN}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
 
 # does not create a new copy
-convert{T<:Z}(::Type{Array{T,1}}, a::ZPoly{T}) = a.a
-modulus{T<:Z}(::ZPoly{T}) = modulus(T)
-modulus{T<:Z}(::Type{ZPoly{T}}) = modulus(T)
+convert{T<:ZModN}(::Type{Array{T,1}}, a::ZPoly{T}) = a.a
+modulus{T<:ZModN}(::ZPoly{T}) = modulus(T)
+modulus{T<:ZModN}(::Type{ZPoly{T}}) = modulus(T)
 
-showcompact{T<:Z}(io::IO, p::ZPoly{T}) = showcompact(io, convert(Array{T,1}, p))
-function show{T<:Z}(io::IO, p::ZPoly{T})
+showcompact{T<:ZModN}(io::IO, p::ZPoly{T}) = showcompact(io, convert(Array{T,1}, p))
+function show{T<:ZModN}(io::IO, p::ZPoly{T})
     n = length(p.a)
     if n == 0
        print(io, "0")
@@ -312,15 +312,15 @@ function show{T<:Z}(io::IO, p::ZPoly{T})
     print(io, " mod $(modulus(T))")
 end
 
-=={T<:Z}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
-<={T<:Z}(a::ZPoly{T}, b::ZPoly{T}) = a.a <= b.a
-<{T<:Z}(a::ZPoly{T}, b::ZPoly{T}) = a.a < b.a
+=={T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
+<={T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a <= b.a
+<{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a < b.a
 
 liftp(c, f, a) = c(f(a.a))
 liftp(c, f, a, b) = c(f(a.a, b.a))
--{T<:Z}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
-+{T<:Z}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, +, a, b)
--{T<:Z}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, -, a, b)
+-{T<:ZModN}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
++{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, +, a, b)
+-{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, -, a, b)
 
 
 function test_p_constructor()
