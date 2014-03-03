@@ -19,7 +19,7 @@
 module IntModN
 
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
-       promote_rule
+       promote_rule, length, getindex, setindex!, start, done, next
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
 
@@ -260,20 +260,22 @@ end
 
 # constructors
 
+# note that index pairs (i, z) are 0-indexed, despite julia being 1-indexed
+# anything else is just hopelessly counterintuitive when read as a polynomial
 ZP() = error("provide at least one (zero?) coeff")
 ZP(c::Function) = error("provide at least one (zero?) coeff")
 function ZP{T<:ZModN}(coeffs::(Int, T)...)
     coeffs = collect(filter(c -> c[2] > zero(T), coeffs))
-    m = length(coeffs) == 0 ? 0 : maximum([i for (i, z) in coeffs])
+    m = length(coeffs) == 0 ? 0 : 1 + maximum([i for (i, z) in coeffs])
     a = zeros(T, m)
     for (i, z) in coeffs
-        a[i] = z
+        a[i+1] = z
     end
     ZPoly{T}(a)
 end
 ZP{I<:Integer}(c::Function, coeffs::(Int, I)...) = ZP([(i, c(n)) for (i, n) in coeffs]...)
-ZP{T<:ZModN}(z::T...) = ZP(enumerate(z)...)
-ZP{I<:Integer}(c::Function, i::I...) = ZP(c, enumerate(i)...)
+ZP{T<:ZModN}(z::T...) = ZP([(i-1,z[i]) for i in 1:length(z)]...)
+ZP{I<:Integer}(c::Function, i::I...) = ZP(c, [(j-1,i[j]) for j in 1:length(i)]...)
 
 # number methods
 
@@ -316,16 +318,68 @@ end
 =={T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
 <={T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a <= b.a
 <{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a < b.a
+length(a::ZPoly) = length(a.a)
+
+# can be accessed and modified as arrays
+getindex{T<:ZModN}(a::ZPoly{T}, i) = getindex(a.a, i)
+setindex!{T<:ZModN}(a::ZPoly{T}, v::T, i) = setindex!(a, v, i)
+start{T<:ZModN}(a::ZPoly{T}) = 1
+done{T<:ZModN}(a::ZPoly{T}, i) = i > length(a)
+next{T<:ZModN}(a::ZPoly{T}, i) = (a[i], i+1)
+
+# apply function, discarding zeros from highest index end
+function apply{T}(f, a::Array{T,1}, b::Array{T,1}; shrink=true)
+    na, nb = length(a), length(b)
+    c = na > nb ? copy(a) : copy(b)
+    shrink = shrink && na == nb
+    for i in min(na, nb):-1:1
+        x = f(a[i], b[i])
+        if x != zero(T) && shrink
+            c = c[1:i]
+            shrink = false
+        end
+        if !shrink
+            c[i] = x
+        end
+    end
+    if shrink
+        c = T[]
+    end
+    c
+end    
 
 liftp(c, f, a) = c(f(a.a))
-liftp(c, f, a, b) = c(f(a.a, b.a))
+liftp(c, f, a, b) = c(apply(f, a.a, b.a))
 -{T<:ZModN}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
 +{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, +, a, b)
 -{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, -, a, b)
 
+function *{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
+    (long, short) = length(a) > length(b) ? (a, b) : (b, a)
+    if length(short) == 0
+        ZPoly{T}(T[])
+    else
+        result = zeros(T, length(long) + length(short) - 1)
+        for (i, z) in enumerate(short)
+            if z != zero(T)
+                for j in 1:length(long)
+                    result[i+j-1] += long[j] * z
+                end
+            end
+        end
+        if result[end] == zero(T)
+            i = length(result)
+            while i > 0 && result[i] == zero(T)
+                i -= 1
+            end
+            result = result[1:i]
+        end
+        ZPoly{T}(result)
+    end
+end
 
 function test_p_constructor()
-    @assert ZPoly{ZField{2,Int}}([GF2(0), GF2(1)]) == ZP(ZF(2), (2, 1))
+    @assert ZPoly{ZField{2,Int}}([GF2(0), GF2(1)]) == ZP(ZF(2), (1, 1))
     @assert ZP(GF2, 0, 0, 0) == zero(ZPoly{ZField{2,Int}})
     @zfield 3 begin
         @assert ZP(1,2,3,4) == ZP(1,2,0,1)
@@ -340,7 +394,11 @@ function test_p_type()
 end
 
 function test_p_arithmetic()
-    @assert ZP(GF2, (4,1), (1,1)) + ZP(GF2, (3,1), (1,1)) == ZP(GF2, 0, 0, 1, 1)
+    @assert ZP(GF2, (3,1), (0,1)) + ZP(GF2, (2,1), (0,1)) == ZP(GF2, 0, 0, 1, 1)
+    # http://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael.27s_finite_field
+    a = ZP(GF2, (6,1), (4,1), (1,1), (0,1))
+    b = ZP(GF2, (7,1), (6,1), (3,1), (1,1))
+    @assert a * b == ZP(GF2, (13,1), (12,1), (11,1), (10,1), (9,1), (8,1), (6,1), (5,1), (4,1), (3,1), (2,1), (1,1))
     println("test_p_arithmetic ok")
 end
 
