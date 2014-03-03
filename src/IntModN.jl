@@ -70,9 +70,9 @@ end
 
 convert{X<:Integer}(::Type{X}, z::ZRing) = convert(X, z.i)
 convert{X<:Integer}(::Type{X}, z::ZField) = convert(X, z.i)
-modulus{N, I}(::ZRing{N, I}) = N
-modulus{N, I}(::ZField{N, I}) = N
-modulus{T<:Z}(::Type{T}) = convert(Int, zero(T) - one(T)) + 1
+modulus{N, I<:Integer}(::Type{Z{N, I}}) = N
+modulus{T<:Z}(::Type{T}) = modulus(super(T))  # jameson type chain
+modulus{T<:Z}(::T) = modulus(T)
 
 showcompact{N,I}(io::IO, z::Z{N,I}) = showcompact(io, convert(I, z))
 show{N,I}(io::IO, z::Z{N,I}) = print(io, "$(convert(I, z)) mod $(modulus(z))")
@@ -285,7 +285,6 @@ modulus{T<:Z}(::ZPoly{T}) = modulus(T)
 modulus{T<:Z}(::Type{ZPoly{T}}) = modulus(T)
 
 showcompact{T<:Z}(io::IO, p::ZPoly{T}) = showcompact(io, convert(Array{T,1}, p))
-
 function show{T<:Z}(io::IO, p::ZPoly{T})
     n = length(p.a)
     if n == 0
