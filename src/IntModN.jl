@@ -72,7 +72,7 @@ convert{X<:Integer}(::Type{X}, z::ZRing) = convert(X, z.i)
 convert{X<:Integer}(::Type{X}, z::ZField) = convert(X, z.i)
 modulus{N, I}(::ZRing{N, I}) = N
 modulus{N, I}(::ZField{N, I}) = N
-modulus{T<:Z}(::Type{T}) = (zero(T) - one(T)).i + 1
+modulus{T<:Z}(::Type{T}) = convert(Int, zero(T) - one(T)) + 1
 
 showcompact{N,I}(io::IO, z::Z{N,I}) = showcompact(io, convert(I, z))
 show{N,I}(io::IO, z::Z{N,I}) = print(io, "$(convert(I, z)) mod $(modulus(z))")
@@ -255,7 +255,7 @@ end
 
 immutable ZPoly{T<:Z}
     a::Array{T,1}
-    ZPoly(a) = length(a) == 0 || a[length(a)] != 0 ? new(a) : error("zero leading coeff")
+    ZPoly(a) = length(a) == 0 || a[end] > zero(T) ? new(a) : error("zero leading coeff")
 end
 
 # constructors
@@ -281,6 +281,8 @@ one{T<:Z}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
 
 # does not create a new copy
 convert{T<:Z}(::Type{Array{T,1}}, a::ZPoly{T}) = a.a
+modulus{T<:Z}(::ZPoly{T}) = modulus(T)
+modulus{T<:Z}(::Type{ZPoly{T}}) = modulus(T)
 
 showcompact{T<:Z}(io::IO, p::ZPoly{T}) = showcompact(io, convert(Array{T,1}, p))
 
