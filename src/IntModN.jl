@@ -357,6 +357,6 @@ function tests()
 end
 
 # run by travis (see .travis.yml in root dir)
-tests()
+#tests()
 
 end
