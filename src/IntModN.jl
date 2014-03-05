@@ -19,7 +19,8 @@
 module IntModN
 
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
-       promote_rule, length, getindex, setindex!, start, done, next
+       promote_rule, length, getindex, setindex!, start, done, next,
+       rand, rand!
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
 
@@ -77,7 +78,20 @@ modulus{T<:ZModN}(::T) = modulus(T)
 showcompact{N,I}(io::IO, z::ZModN{N,I}) = showcompact(io, convert(I, z))
 show{N,I}(io::IO, z::ZModN{N,I}) = print(io, "$(convert(I, z)) mod $(modulus(z))")
 
-=={N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = convert(I, a) == convert(I, b)  # equal N
+# the random api for ints is kinda broken in that it doesn't take a generator
+rand{N,I<:Integer}(T::Type{ZRing{N,I}}) = ZR(N, rand(one(I):convert(I,N)))
+rand{N,I<:Integer}(T::Type{ZField{N,I}}) = ZF(N, rand(one(I):convert(I,N)))
+function rand!{T<:ZModN}(::Type{T}, A::AbstractArray)
+    for i in 1:length(A)
+        A[i] = rand(T)
+    end
+    A
+end
+rand(::Type{ZModN}, dims...) = error("use more specific type")
+rand{T<:ZModN}(::Type{T}, dims...) = rand!(T, Array(T, dims))
+
+# equal N from types
+=={N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = convert(I, a) == convert(I, b)
 <={N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = convert(I, a) <= convert(I, b)
 <{N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = convert(I, a) < convert(I, b)
 
@@ -165,6 +179,14 @@ function test_z_constructor()
     println("test_z_constructor ok")
 end
 
+function test_z_random()
+    @assert isa(rand(ZRing{3,Uint}), ZRing{3,Uint})
+    a = rand(ZField{4,Uint8}, 2, 3)
+    @assert size(a) == (2, 3)
+    @assert isa(a, Array{ZField{4,Uint8},2})
+    println("test_z_random ok")
+end
+
 function test_z_arithmetic()
 
     @assert GF2(1) + GF2(1) == GF2(0)
@@ -243,6 +265,7 @@ end
 
 function tests_z()
     test_z_constructor()
+    test_z_random()
     test_z_arithmetic()
     test_z_matrix_inverse()
     test_z_power()
@@ -260,6 +283,7 @@ end
 
 # constructors
 
+# TODO - different rep or back to 1-indexed
 # note that index pairs (i, z) are 0-indexed, despite julia being 1-indexed
 # anything else is just hopelessly counterintuitive when read as a polynomial
 ZP() = error("provide at least one (zero?) coeff")
@@ -357,8 +381,39 @@ liftp(c, f, a, b) = c(apply(f, a.a, b.a))
 function *{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
     (long, short) = length(a) > length(b) ? (a, b) : (b, a)
     if length(short) == 0
-        ZPoly{T}(T[])
+        short
+    elseif length(short) == 1 && short[1] == one(T)
+        long
     else
+        result = zeros(T, length(long) + length(short) - 1)
+        for (i, z) in enumerate(short)
+            if z != zero(T)
+                for j in 1:length(long)
+                    result[i+j-1] += long[j] * z
+                end
+            end
+        end
+        if result[end] == zero(T)
+            i = length(result)
+            while i > 0 && result[i] == zero(T)
+                i -= 1
+            end
+            result = result[1:i]
+        end
+        ZPoly{T}(result)
+    end
+end
+
+function divmod{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
+    @assert length(b) > 0 "division by zero polynomial"
+    if length(a) == 0
+        (a, a)
+    elseif length(b) == 1 && b[1] == one(T)
+        (a, zero(T))
+    elseif length(b) > length(a)
+        (zero(T), a)
+    else 
+        # TODO
         result = zeros(T, length(long) + length(short) - 1)
         for (i, z) in enumerate(short)
             if z != zero(T)
