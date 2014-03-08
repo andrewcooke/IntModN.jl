@@ -20,11 +20,13 @@ module IntModN
 
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule, length, getindex, setindex!, start, done, next,
-       rand, rand!
+       rand, rand!, print
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
+# Pkg.clone("https://github.com/vtjnash/Polynomial.jl")
+using Polynomial
 
-export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, ZPoly, ZP
+export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, Poly, X, P
 
 
 
@@ -85,8 +87,10 @@ modulus{N, I<:Integer}(::Type{ZModN{N, I}}) = N
 modulus{T<:ZModN}(::Type{T}) = modulus(super(T))  # jameson type chain
 modulus{T<:ZModN}(::T) = modulus(T)
 
-showcompact{N,I}(io::IO, z::ZModN{N,I}) = showcompact(io, convert(I, z))
-show{N,I}(io::IO, z::ZModN{N,I}) = print(io, "$(convert(I, z)) mod $(modulus(z))")
+showcompact{N,I}(io::IO, z::ZModN{N,I}) = showcompact(io, z.i)
+print{N,I}(io::IO, z::ZModN{N,I}) = print(io, "$(z.i) mod $N")
+show{N,I<:Integer}(io::IO, z::ZField{N,I}) = print(io, "ZField{$N,$I}($(z.i))")
+show{N,I<:Integer}(io::IO, z::ZRing{N,I}) = print(io, "ZRing{$N,$I}($(z.i))")
 
 # the random api for ints is kinda broken in that it doesn't take a generator
 rand{N,I<:Integer}(T::Type{ZRing{N,I}}) = ZR(N, rand(one(I):convert(I,N)))
@@ -171,161 +175,63 @@ end
 # --- polynomials over integers modulo n
 
 
-immutable ZPoly{T<:ZModN}
-    a::Array{T,1}
-    ZPoly(a) = length(a) == 0 || a[end] > zero(T) ? new(a) : error("zero leading coeff")
-end
+# instead of re-inventing the wheel we use the existing Polynomial module
+# (note that these store in an array from high to low)
 
+# nice syntax for creating polynomials.
+# use x=X(ZF(2)) or x=X(GF2) or x=X(ZField{2,Int}) and then x^2+3 etc
+X(c::Function) = Poly([c(1), c(0)])
+X{Z<:ZModN}(::Type{Z}) = Poly([one(Z), zero(Z)])
 
-# constructors
+# a compact way of generating from an array and a type
+# (we can then use this in show to give a compact but accurate reprn)
+P(c::Function, a::Vector; var=:x) = Poly(map(c, a), var)
+P(c::Function, a...; var=:x) = P(c, [a...], var=var)
+P{N,I<:Integer}(::Type{ZField{N,I}}, a::Vector{I}; var=:x) = P(ZF(N), a, var=var)
+P{N,I<:Integer}(::Type{ZField{N,I}}, a::I...; var=:x) = P(ZF(N), [a...], var=var)
+P{N,I<:Integer}(::Type{ZRing{N,I}}, a::Vector{I}; var=:x) = P(ZR(N), a, var=var)
+P{N,I<:Integer}(::Type{ZRing{N,I}}, a::I...; var=:x) = P(ZR(N), [a...], var=var)
 
-# note that index pairs (i, z) are 0-indexed, despite julia being 1-indexed
-# anything else is just hopelessly counterintuitive when read as a polynomial
-ZP() = error("provide at least one (zero?) coeff")
-ZP(c::Function) = error("provide at least one (zero?) coeff")
-function ZP{T<:ZModN}(coeffs::(Int, T)...)
-    coeffs = collect(filter(c -> c[2] > zero(T), coeffs))
-    m = length(coeffs) == 0 ? 0 : 1 + maximum([i for (i, z) in coeffs])
-    a = zeros(T, m)
-    for (i, z) in coeffs
-        a[i+1] = z
-    end
-    ZPoly{T}(a)
-end
-ZP{I<:Integer}(c::Function, coeffs::(Int, I)...) = ZP([(i, c(n)) for (i, n) in coeffs]...)
-ZP{T<:ZModN}(z::T...) = ZP([(i-1,z[i]) for i in 1:length(z)]...)
-ZP{I<:Integer}(c::Function, i::I...) = ZP(c, [(j-1,i[j]) for j in 1:length(i)]...)
-
-# number methods
-
-zero{T<:ZModN}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
-one{T<:ZModN}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
-
-# does not create a new copy
-convert{T<:ZModN}(::Type{Array{T,1}}, a::ZPoly{T}) = a.a
-modulus{T<:ZModN}(::ZPoly{T}) = modulus(T)
-modulus{T<:ZModN}(::Type{ZPoly{T}}) = modulus(T)
-
-showcompact{T<:ZModN}(io::IO, p::ZPoly{T}) = showcompact(io, convert(Array{T,1}, p))
-function show{T<:ZModN}(io::IO, p::ZPoly{T})
-    n = length(p.a)
-    if n == 0
-       print(io, "0")
+# the defaults repeat "mod n" all over the place
+function print{Z<:ZModN}(io::IO, p::Poly{Z})
+    n = length(p)
+    if n <= 0
+        print(io,"0")
     else
-        for i in n:-1:1
-            if p.a[i] > zero(T)
-                if i < n
-                    print(io, " + ")
+        for j = 1:n
+            pj = p[j]
+            if pj != zero(Z)
+                if j == 1 
+                    pj < 0 && print(io, "-")
+                else
+                    pj < 0 ? print(io," - ") : print(io," + ")
                 end
-                if p.a[i] > one(T) || i == 1
-                    showcompact(io, p.a[i])
-                    if i > 1
-                        print(io, " ")
+                magpj = abs(pj)
+                if j == n || magpj != one(Z)
+                    print(io, magpj.i)
+                end
+                exp = n-j
+                if exp > 0
+                    print(io, p.var)
+                    if exp > 1
+                        print(io, '^', exp)
                     end
                 end
-                if i == 2
-                    print(io, "x")
-                elseif i > 2
-                    print(io, "x^$(i-1)")
-                end
             end
         end
     end
-    print(io, " mod $(modulus(T))")
+    print(io, " mod $(modulus(Z))")
+end
+function show{Z<:ZModN}(io::IO, p::Poly{Z})
+    print(io, "P($Z")
+    for i in 1:length(p)
+        print(io, ",$(p[i].i)")
+    end
+    if p.var != :x
+        print(io, ";var=:$(p.var)")
+    end
+    print(io, ")")
 end
 
-=={T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
-<={T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a <= b.a
-<{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a < b.a
-length(a::ZPoly) = length(a.a)
-
-# can be accessed and modified as arrays
-getindex{T<:ZModN}(a::ZPoly{T}, i) = getindex(a.a, i)
-setindex!{T<:ZModN}(a::ZPoly{T}, v::T, i) = setindex!(a, v, i)
-start{T<:ZModN}(a::ZPoly{T}) = 1
-done{T<:ZModN}(a::ZPoly{T}, i) = i > length(a)
-next{T<:ZModN}(a::ZPoly{T}, i) = (a[i], i+1)
-
-# apply function, discarding zeros from highest index end
-function apply{T}(f, a::Array{T,1}, b::Array{T,1}; shrink=true)
-    na, nb = length(a), length(b)
-    c = na > nb ? copy(a) : copy(b)
-    shrink = shrink && na == nb
-    for i in min(na, nb):-1:1
-        x = f(a[i], b[i])
-        if x != zero(T) && shrink
-            c = c[1:i]
-            shrink = false
-        end
-        if !shrink
-            c[i] = x
-        end
-    end
-    if shrink
-        c = T[]
-    end
-    c
-end    
-
-liftp(c, f, a) = c(f(a.a))
-liftp(c, f, a, b) = c(apply(f, a.a, b.a))
--{T<:ZModN}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
-+{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, +, a, b)
--{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, -, a, b)
-
-function *{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
-    (long, short) = length(a) > length(b) ? (a, b) : (b, a)
-    if length(short) == 0
-        short
-    elseif length(short) == 1 && short[1] == one(T)
-        long
-    else
-        result = zeros(T, length(long) + length(short) - 1)
-        for (i, z) in enumerate(short)
-            if z != zero(T)
-                for j in 1:length(long)
-                    result[i+j-1] += long[j] * z
-                end
-            end
-        end
-        if result[end] == zero(T)
-            i = length(result)
-            while i > 0 && result[i] == zero(T)
-                i -= 1
-            end
-            result = result[1:i]
-        end
-        ZPoly{T}(result)
-    end
-end
-
-function divmod{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
-    @assert length(b) > 0 "division by zero polynomial"
-    if length(a) == 0
-        (a, a)
-    elseif length(b) == 1 && b[1] == one(T)
-        (a, zero(T))
-    elseif length(b) > length(a)
-        (zero(T), a)
-    else 
-        # TODO
-        result = zeros(T, length(long) + length(short) - 1)
-        for (i, z) in enumerate(short)
-            if z != zero(T)
-                for j in 1:length(long)
-                    result[i+j-1] += long[j] * z
-                end
-            end
-        end
-        if result[end] == zero(T)
-            i = length(result)
-            while i > 0 && result[i] == zero(T)
-                i -= 1
-            end
-            result = result[1:i]
-        end
-        ZPoly{T}(result)
-    end
-end
 
 end
