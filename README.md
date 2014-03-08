@@ -14,6 +14,8 @@ moduli) of integers, polynomials over those, and related fields
 (irreducible factor polynomials).  At the moment only rings and fields
 of integers, and simple polynomials over those, are supported.
 
+Requires [Polynomial.jl](https://github.com/vtjnash/Polynomial.jl).
+
 ## Examples
 
 See the
