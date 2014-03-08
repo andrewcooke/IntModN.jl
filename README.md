@@ -33,7 +33,7 @@ question](http://math.stackexchange.com/questions/169921/how-to-solve-system-of-
 end
 ```
 
-### Polynomial Arithmetic
+### Polynomial Arithmetic in GF(2)
 
 ```
 julia> using IntModN
