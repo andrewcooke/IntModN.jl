@@ -21,6 +21,7 @@ module IntModN
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule, length, getindex, setindex!, start, done, next,
        rand, rand!, print
+
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
 # Pkg.clone("https://github.com/vtjnash/Polynomial.jl")
@@ -233,5 +234,7 @@ function show{Z<:ZModN}(io::IO, p::Poly{Z})
     print(io, ")")
 end
 
+
+import Tests: tests
 
 end

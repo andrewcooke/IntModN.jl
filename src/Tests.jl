@@ -153,11 +153,12 @@ function test_p_show()
 end
 
 function test_p_arithmetic()
-    @assert ZP(GF2, (3,1), (0,1)) + ZP(GF2, (2,1), (0,1)) == ZP(GF2, 0, 0, 1, 1)
-    # http://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael.27s_finite_field
-    a = ZP(GF2, (6,1), (4,1), (1,1), (0,1))
-    b = ZP(GF2, (7,1), (6,1), (3,1), (1,1))
-    @assert a * b == ZP(GF2, (13,1), (12,1), (11,1), (10,1), (9,1), (8,1), (6,1), (5,1), (4,1), (3,1), (2,1), (1,1))
+    x = X(GF2)
+    a = x^3 + x^2 + 1
+    b = x^2 + 1
+    p, q = divrem(a, b)
+    @assert string(p * b + q) == "x^3 + x^2 + 1 mod 2"
+
     println("test_p_arithmetic ok")
 end
 
