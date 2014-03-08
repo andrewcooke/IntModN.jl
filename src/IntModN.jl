@@ -222,6 +222,7 @@ function print{Z<:ZModN}(io::IO, p::Poly{Z})
     end
     print(io, " mod $(modulus(Z))")
 end
+
 function show{Z<:ZModN}(io::IO, p::Poly{Z})
     print(io, "P($Z")
     for i in 1:length(p)
