@@ -80,7 +80,6 @@ convert(::Type{Bool}, z::ZRing) = convert(Bool, z.i)
 convert(::Type{Bool}, z::ZField) = convert(Bool, z.i)
 convert{X<:Integer}(::Type{X}, z::ZRing) = convert(X, z.i)
 convert{X<:Integer}(::Type{X}, z::ZField) = convert(X, z.i)
-# TODO - check these don't break other stuff
 convert{N,I<:Integer}(::Type{ZRing{N,I}}, i::I) = ZR(N, i)
 convert{N,I<:Integer}(::Type{ZField{N,I}}, i::I) = ZF(N, i)
 modulus{N, I<:Integer}(::Type{ZModN{N, I}}) = N
