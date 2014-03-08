@@ -19,7 +19,7 @@ Requires [Polynomial.jl](https://github.com/vtjnash/Polynomial.jl).
 ## Examples
 
 See the
-[tests](https://github.com/andrewcooke/IntModN.jl/blob/master/src/IntModN.jl).
+[tests](https://github.com/andrewcooke/IntModN.jl/blob/master/src/Tests.jl).
 
 ### Simultaneous Equations in GF(2)
 
