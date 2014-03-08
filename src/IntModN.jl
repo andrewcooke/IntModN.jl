@@ -235,6 +235,12 @@ function show{Z<:ZModN}(io::IO, p::Poly{Z})
 end
 
 
+# --- pull in tests (does this need ot be so ugly?)
+
+d = Pkg.dir("IntModN")
+d = "$d/src"
+push!(LOAD_PATH, d)
 import Tests: tests
+pop!(LOAD_PATH)
 
 end
