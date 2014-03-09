@@ -142,7 +142,7 @@ liftz(c, n, i, f, a, b) = c(convert(i, mod(f(convert(i, a), convert(i, b)), n)))
 function inverse{I<:Integer}(a::I, n::I)
     t::I, newt::I = zero(I), one(I)
     r::I, newr::I = n, a
-    while newr != 0
+    while newr != zero(I)
         q::I = div(r, newr)
         t, newt = newt, t - q * newt
         r, newr = newr, r - q * newr
@@ -275,6 +275,9 @@ modulus{Z<:ZModN, F}(::Type{FModN{Z,F}}) = modulus(Z)
 modulus{F<:FModN}(::F) = modulus(F)
 order{F<:FModN}(::Type{F}) = modulus(F) ^ Polynomial.deg(factor(F))
 order{F<:FModN}(::F) = order(F)
+
+zero{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FRing(Poly(zero(Z)), tuple_to_poly(Z, F))
+one{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FRing(Poly(one(Z)), tuple_to_poly(Z, F))
 
 function show(io::IO, r::FRing)
     print(io, "FR(")
