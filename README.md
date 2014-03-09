@@ -59,6 +59,24 @@ julia> println(p * b + q)
 x^3 + x^2 + 1 mod 2
 ```
 
+### Factor Rings in GF(2)
+
+The multiplication [described
+here](http://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael.27s_finite_field)
+
+```
+julia> using IntModN
+
+julia> x = X(GF2)
+P(ZField{2,Int64},1,0)
+
+julia> rijndael = x^8 + x^4 + x^3 + x + 1
+P(ZField{2,Int64},1,0,0,0,1,1,0,1,1)
+
+julia> print(FR(x^7 + x^6 + x^3 + x, rijndael) * FR(x^6 + x^4 + x + 1, rijndael))
+1 mod x^8 + x^4 + x^3 + x + 1 mod 2
+```
+
 ## Licence
 
 MIT Licence; (c) 2014 Andrew Cooke andrew@acooke.org

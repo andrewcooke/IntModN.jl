@@ -262,20 +262,19 @@ immutable FRing{Z<:ZModN, F<:Tuple} <: FModN{Z,F}
     p::Poly{Z}
 end
 
-function validate{Z<:ZModN}(f::Poly{Z}, p::Poly{Z}) 
+function validate{Z<:ZModN}(p::Poly{Z}, f::Poly{Z})
     a, b = divrem(p, f)
     b
 end
 
-FR{Z<:ZModN}(p::Poly{Z}, f::Poly{Z}) = FRing{Z, poly_to_tuple(f)}(validate(f, p))
+FR{Z<:ZModN}(p::Poly{Z}, f::Poly{Z}) = FRing{Z, poly_to_tuple(f)}(validate(p, f))
 
 factor{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = tuple_to_poly(Z, F)
 factor{Z<:ZModN, F<:Tuple}(::FRing{Z, F}) = tuple_to_poly(Z, F)
-# TODO   !!!!!!!!!!!!!!!!!
-modulus{F<:FModN}(::Type{F}) = modulus(F)
+modulus{Z<:ZModN, F}(::Type{FModN{Z,F}}) = modulus(Z)
 modulus{F<:FModN}(::F) = modulus(F)
 order{F<:FModN}(::Type{F}) = modulus(F) ^ Polynomial.deg(factor(F))
-order{F<:FModN}(::F) = modulus(F) ^ Polynomial.deg(factor(F))
+order{F<:FModN}(::F) = order(F)
 
 function show(io::IO, r::FRing)
     print(io, "FR(")
@@ -287,9 +286,15 @@ end
 
 function print(io::IO, r::FRing)
     print_no_mod(io, r.p)
-    print(io, " / ");
+    print(io, " mod ");
     print(io, factor(r))
 end
+
+liftf{F<:FRing}(f, a::F, b::F) = FR(f(a.p, b.p), factor(F))
++{F<:FRing}(a::F, b::F) = liftf(+, a, b)
+-{F<:FRing}(a::F, b::F) = liftf(-, a, b)
+*{F<:FRing}(a::F, b::F) = liftf(*, a, b)
+/{F<:FRing}(a::F, b::F) = liftf(/, a, b)  # TODO?
 
 
 # --- pull in tests (does this need ot be so ugly?)
