@@ -294,7 +294,7 @@ liftf{F<:FRing}(f, a::F, b::F) = FR(f(a.p, b.p), factor(F))
 +{F<:FRing}(a::F, b::F) = liftf(+, a, b)
 -{F<:FRing}(a::F, b::F) = liftf(-, a, b)
 *{F<:FRing}(a::F, b::F) = liftf(*, a, b)
-/{F<:FRing}(a::F, b::F) = liftf(/, a, b)  # TODO?
+
 
 
 # --- pull in tests (does this need ot be so ugly?)
