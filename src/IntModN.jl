@@ -271,6 +271,7 @@ FR{Z<:ZModN}(p::Poly{Z}, f::Poly{Z}) = FRing{Z, poly_to_tuple(f)}(validate(f, p)
 
 factor{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = tuple_to_poly(Z, F)
 factor{Z<:ZModN, F<:Tuple}(::FRing{Z, F}) = tuple_to_poly(Z, F)
+# TODO   !!!!!!!!!!!!!!!!!
 modulus{F<:FModN}(::Type{F}) = modulus(F)
 modulus{F<:FModN}(::F) = modulus(F)
 order{F<:FModN}(::Type{F}) = modulus(F) ^ Polynomial.deg(factor(F))
