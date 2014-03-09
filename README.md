@@ -62,7 +62,7 @@ x^3 + x^2 + 1 mod 2
 ### Factor Rings in GF(2)
 
 The multiplication [described
-here](http://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael.27s_finite_field).
+here](http://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael.27s_finite_field):
 
 ```
 julia> using IntModN
