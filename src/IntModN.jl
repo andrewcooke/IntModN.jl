@@ -27,7 +27,9 @@ import Base: show, showcompact, zero, one, inv, real, abs, convert,
 # Pkg.clone("https://github.com/vtjnash/Polynomial.jl")
 using Polynomial
 
-export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, Poly, X, P
+export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, Poly, X, P,
+       order, modulus, factor, itype,
+       FModN, FRing, FR
 
 
 
@@ -47,13 +49,14 @@ immutable ZRing{N, I<:Integer} <: ZModN{N,I}
     i::I
 end
 
+# this assumes N is prime and uses a faster inverse
 immutable ZField{N, I<:Integer} <: ZModN{N,I}
     i::I
 end
 
 # but typically you would use one of these constructors
 
-function validate(n, i)
+function validate{I<:Integer}(n::Int, i::I)
     @assert n > 0 "modulus ($n) too small"
     @assert n <= typemax(typeof(i)) "modulus ($n) too large for $(typeof(i))"
     mod(i, n)
@@ -68,6 +71,15 @@ ZF(n) = i::Integer -> ZF(n, i)  # used to construct constructors
 
 GF2 = ZF(2)
 
+modulus{N, I<:Integer}(::Type{ZModN{N, I}}) = N
+modulus{T<:ZModN}(::Type{T}) = modulus(super(T))  # jameson type chain
+modulus{T<:ZModN}(::T) = modulus(T)
+order{T<:ZModN}(::Type{T}) = modulus(T)
+order{T<:ZModN}(::T) = modulus(T)
+itype{N, I<:Integer}(::Type{ZModN{N, I}}) = I
+itype{T<:ZModN}(::Type{T}) = itype(super(T))  # jameson type chain
+itype{T<:ZModN}(::T) = itype(T)
+duplicate{Z<:ZModN}(::Type{Z}, i::Integer) = Z(validate(modulus(Z), convert(itype(Z), i)))
 
 # all the methods that make these numbers
 
@@ -76,16 +88,12 @@ one{N,I}(::Type{ZRing{N,I}}) = ZRing{N,I}(one(I))
 zero{N,I}(::Type{ZField{N,I}}) = ZField{N,I}(zero(I))
 one{N,I}(::Type{ZField{N,I}}) = ZField{N,I}(one(I))
 
-# needed for disambiguation
 convert(::Type{Bool}, z::ZRing) = convert(Bool, z.i)
 convert(::Type{Bool}, z::ZField) = convert(Bool, z.i)
 convert{X<:Integer}(::Type{X}, z::ZRing) = convert(X, z.i)
 convert{X<:Integer}(::Type{X}, z::ZField) = convert(X, z.i)
 convert{N,I<:Integer}(::Type{ZRing{N,I}}, i::I) = ZR(N, i)
 convert{N,I<:Integer}(::Type{ZField{N,I}}, i::I) = ZF(N, i)
-modulus{N, I<:Integer}(::Type{ZModN{N, I}}) = N
-modulus{T<:ZModN}(::Type{T}) = modulus(super(T))  # jameson type chain
-modulus{T<:ZModN}(::T) = modulus(T)
 
 showcompact{N,I}(io::IO, z::ZModN{N,I}) = showcompact(io, z.i)
 print{N,I}(io::IO, z::ZModN{N,I}) = print(io, "$(z.i) mod $N")
@@ -175,7 +183,7 @@ end
 # --- polynomials over integers modulo n
 
 
-# instead of re-inventing the wheel we use the existing Polynomial module
+# instead of re-inventing the wheel we extend the existing Polynomial module
 # (note that these store in an array from high to low)
 
 # nice syntax for creating polynomials.
@@ -185,12 +193,13 @@ X{Z<:ZModN}(::Type{Z}) = Poly([one(Z), zero(Z)])
 
 # a compact way of generating from an array and a type
 # (we can then use this in show to give a compact but accurate reprn)
-P(c::Function, a::Vector; var=:x) = Poly(map(c, a), var)
-P(c::Function, a...; var=:x) = P(c, [a...], var=var)
-P{N,I<:Integer}(::Type{ZField{N,I}}, a::Vector{I}; var=:x) = P(ZF(N), a, var=var)
-P{N,I<:Integer}(::Type{ZField{N,I}}, a::I...; var=:x) = P(ZF(N), [a...], var=var)
-P{N,I<:Integer}(::Type{ZRing{N,I}}, a::Vector{I}; var=:x) = P(ZR(N), a, var=var)
-P{N,I<:Integer}(::Type{ZRing{N,I}}, a::I...; var=:x) = P(ZR(N), [a...], var=var)
+# (note that we always use x (the default) as the variable in Poly)
+P(c::Function, a::Vector) = Poly(map(c, a))
+P(c::Function, a...) = P(c, [a...])
+P{N,I<:Integer}(::Type{ZField{N,I}}, a::Vector{I}) = P(ZF(N), a)
+P{N,I<:Integer}(::Type{ZField{N,I}}, a::I...) = P(ZF(N), [a...])
+P{N,I<:Integer}(::Type{ZRing{N,I}}, a::Vector{I}) = P(ZR(N), a)
+P{N,I<:Integer}(::Type{ZRing{N,I}}, a::I...) = P(ZR(N), [a...])
 
 # the defaults repeat "mod n" all over the place
 function print{Z<:ZModN}(io::IO, p::Poly{Z})
@@ -233,6 +242,38 @@ function show{Z<:ZModN}(io::IO, p::Poly{Z})
     end
     print(io, ")")
 end
+
+# needed below to squeeze polynomial into type
+poly_to_tuple{Z<:ZModN}(p::Poly{Z}) = tuple(map(a -> a.i, p.a)...)
+tuple_to_poly{Z<:ZModN}(::Type{Z}, t::Tuple) = Poly([map(i -> duplicate(Z, i), t)...])
+
+
+
+# --- factor rings and fields
+
+
+# this assumes the factor is irreducible
+abstract FModN{Z<:ZModN, F} <: Real
+
+immutable FRing{Z<:ZModN, F<:Tuple} <: FModN{Z,F}
+    p::Poly{Z}
+end
+
+function validate{Z<:ZModN}(f::Poly{Z}, p::Poly{Z}) 
+    a, b = divrem(p, f)
+    b
+end
+
+FR{Z<:ZModN}(p::Poly{Z}, f::Poly{Z}) = FRing{Z, poly_to_tuple(f)}(validate(f, p))
+
+factor{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = tuple_to_poly(Z, F)
+factor{Z<:ZModN, F<:Tuple}(::FRing{Z, F}) = tuple_to_poly(Z, F)
+modulus{F<:FModN}(::Type{F}) = modulus(F)
+modulus{F<:FModN}(::F) = modulus(F)
+order{F<:FModN}(::Type{F}) = modulus(F) ^ Polynomial.deg(factor(F))
+order{F<:FModN}(::F) = modulus(F) ^ Polynomial.deg(factor(F))
+
+
 
 
 # --- pull in tests (does this need ot be so ugly?)

@@ -12,8 +12,10 @@ function test_z_constructor()
 
     @assert string(ZR(3, 2, Int)) == "2 mod 3"
     @assert string(ZR(3, 2)) == "2 mod 3"
+    @assert sprint(show, ZR(3, 2)) == "ZRing{3,Int64}(2)"
     @assert string(ZF(3, 2, Int)) == "2 mod 3"
     @assert string(ZF(3, 2)) == "2 mod 3"
+    @assert sprint(show, ZF(3, 2)) == "ZField{3,Int64}(2)"
     
     Z2 = ZF(2)
     @assert GF2(1) == Z2(1) == ZField{2,Int}(1) == ZF(2, 1)
@@ -27,6 +29,10 @@ function test_z_constructor()
         @assert isa(e, ErrorException)
         @assert search(string(e), "too large") != 0:-1 
     end
+
+    z = ZF(5,3)
+    @assert z == IntModN.duplicate(typeof(z), 8)
+
     println("test_z_constructor ok")
 end
 
@@ -46,6 +52,8 @@ function test_z_arithmetic()
     @assert inv(ZF(5, 3)) == ZF(5, 2)
     @assert ZF(5, 3) * ZF(5, 2) == one(ZField{5, Int})
     @assert GF2(0)^0 == GF2(1)
+
+    @assert modulus(GF2(1)) == order(GF2(0)) == 2
 
     try
         inv(ZR(6, 2))
@@ -142,12 +150,17 @@ function test_p_constructor()
     @assert P(ZF(2), [1, 1, 0]) == x^2 + x
     @assert P(ZField{2,Int}, [1, 1, 0]) == x^2 + x
 
+    p = x^2 + x
+    @assert IntModN.poly_to_tuple(p) == (1, 1, 0)
+    @assert IntModN.tuple_to_poly(ZField{2,Int}, (1, 1, 0)) == p
+
     println("test_p_constructor ok")
 end
 
 function test_p_show()
     x = X(ZF(5))
     @assert string(3x^2 + 1) == "3x^2 + 1 mod 5"
+    @assert sprint(show, 3x^2 + 1) == "P(ZField{5,Int64},3,0,1)"
     
     println("test_p_show ok")
 end
@@ -169,15 +182,26 @@ function tests_p()
 end
 
 
+# --- factor rings of polynomials
 
 
+function test_f_constructor()
+    x = X(GF2)
+    f = FR(x^3 + x^2, x^2 + 1)
+    println(f)
+    
+end
 
+function tests_f()
+    test_f_constructor()
+end
 
 
 
 function tests()
     tests_z()
     tests_p()
+    tests_f()
 end
 
 end
