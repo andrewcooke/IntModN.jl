@@ -188,7 +188,7 @@ end
 function test_f_constructor()
     x = X(GF2)
     f = FR(x^3 + x^2, x^2 + 1)
-    @assert string(f) == "x + 1 / x^2 + 1 mod 2"
+    @assert string(f) == "x + 1 mod x^2 + 1 mod 2"
     @assert sprint(show, f) == "FR(P(ZField{2,Int64},1,1),P(ZField{2,Int64},1,0,1))"
 end
 
