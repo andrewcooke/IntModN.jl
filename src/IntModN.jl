@@ -203,6 +203,11 @@ P{N,I<:Integer}(::Type{ZRing{N,I}}, a::I...) = P(ZR(N), [a...])
 
 # the defaults repeat "mod n" all over the place
 function print{Z<:ZModN}(io::IO, p::Poly{Z})
+    print_no_mod(io, p)
+    print(io, " mod $(modulus(Z))")
+end
+
+function print_no_mod{Z<:ZModN}(io::IO, p::Poly{Z})
     n = length(p)
     if n <= 0
         print(io,"0")
@@ -229,7 +234,6 @@ function print{Z<:ZModN}(io::IO, p::Poly{Z})
             end
         end
     end
-    print(io, " mod $(modulus(Z))")
 end
 
 function show{Z<:ZModN}(io::IO, p::Poly{Z})
@@ -273,7 +277,19 @@ modulus{F<:FModN}(::F) = modulus(F)
 order{F<:FModN}(::Type{F}) = modulus(F) ^ Polynomial.deg(factor(F))
 order{F<:FModN}(::F) = modulus(F) ^ Polynomial.deg(factor(F))
 
+function show(io::IO, r::FRing)
+    print(io, "FR(")
+    show(io, r.p)
+    print(io, ",")
+    show(io, factor(r))
+    print(io, ")")
+end
 
+function print(io::IO, r::FRing)
+    print_no_mod(io, r.p)
+    print(io, " / ");
+    print(io, factor(r))
+end
 
 
 # --- pull in tests (does this need ot be so ugly?)
