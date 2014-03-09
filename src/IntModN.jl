@@ -183,6 +183,174 @@ end
 # --- polynomials over integers modulo n
 
 
+immutable ZPoly{T<:ZModN}
+    a::Array{T,1}
+    ZPoly(a) = length(a) == 0 || a[end] > zero(T) ? new(a) : error("zero leading coeff")
+end
+
+
+# constructors
+
+# note that index pairs (i, z) are 0-indexed, despite julia being 1-indexed
+# anything else is just hopelessly counterintuitive when read as a polynomial
+ZP() = error("provide at least one (zero?) coeff")
+ZP(c::Function) = error("provide at least one (zero?) coeff")
+function ZP{T<:ZModN}(coeffs::(Int, T)...)
+    coeffs = collect(filter(c -> c[2] > zero(T), coeffs))
+    m = length(coeffs) == 0 ? 0 : 1 + maximum([i for (i, z) in coeffs])
+    a = zeros(T, m)
+    for (i, z) in coeffs
+        a[i+1] = z
+    end
+    ZPoly{T}(a)
+end
+ZP{I<:Integer}(c::Function, coeffs::(Int, I)...) = ZP([(i, c(n)) for (i, n) in coeffs]...)
+ZP{T<:ZModN}(z::T...) = ZP([(i-1,z[i]) for i in 1:length(z)]...)
+ZP{I<:Integer}(c::Function, i::I...) = ZP(c, [(j-1,i[j]) for j in 1:length(i)]...)
+
+# number methods
+
+zero{T<:ZModN}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
+one{T<:ZModN}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
+
+# does not create a new copy
+convert{T<:ZModN}(::Type{Array{T,1}}, a::ZPoly{T}) = a.a
+modulus{T<:ZModN}(::ZPoly{T}) = modulus(T)
+modulus{T<:ZModN}(::Type{ZPoly{T}}) = modulus(T)
+
+showcompact{T<:ZModN}(io::IO, p::ZPoly{T}) = showcompact(io, convert(Array{T,1}, p))
+function show{T<:ZModN}(io::IO, p::ZPoly{T})
+    n = length(p.a)
+    if n == 0
+       print(io, "0")
+    else
+        for i in n:-1:1
+            if p.a[i] > zero(T)
+                if i < n
+                    print(io, " + ")
+                end
+                if p.a[i] > one(T) || i == 1
+                    showcompact(io, p.a[i])
+                    if i > 1
+                        print(io, " ")
+                    end
+                end
+                if i == 2
+                    print(io, "x")
+                elseif i > 2
+                    print(io, "x^$(i-1)")
+                end
+            end
+        end
+    end
+    print(io, " mod $(modulus(T))")
+end
+
+=={T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
+<={T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a <= b.a
+<{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a < b.a
+length(a::ZPoly) = length(a.a)
+
+# can be accessed and modified as arrays
+getindex{T<:ZModN}(a::ZPoly{T}, i) = getindex(a.a, i)
+setindex!{T<:ZModN}(a::ZPoly{T}, v::T, i) = setindex!(a, v, i)
+start{T<:ZModN}(a::ZPoly{T}) = 1
+done{T<:ZModN}(a::ZPoly{T}, i) = i > length(a)
+next{T<:ZModN}(a::ZPoly{T}, i) = (a[i], i+1)
+
+# apply function, discarding zeros from highest index end
+function apply{T}(f, a::Array{T,1}, b::Array{T,1}; shrink=true)
+    na, nb = length(a), length(b)
+    c = na > nb ? copy(a) : copy(b)
+    shrink = shrink && na == nb
+    for i in min(na, nb):-1:1
+        x = f(a[i], b[i])
+        if x != zero(T) && shrink
+            c = c[1:i]
+            shrink = false
+        end
+        if !shrink
+            c[i] = x
+        end
+    end
+    if shrink
+        c = T[]
+    end
+    c
+end    
+
+liftp(c, f, a) = c(f(a.a))
+liftp(c, f, a, b) = c(apply(f, a.a, b.a))
+-{T<:ZModN}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
++{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, +, a, b)
+-{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, -, a, b)
+
+function *{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
+    (long, short) = length(a) > length(b) ? (a, b) : (b, a)
+    if length(short) == 0
+        short
+    elseif length(short) == 1 && short[1] == one(T)
+        long
+    else
+        result = zeros(T, length(long) + length(short) - 1)
+        for (i, z) in enumerate(short)
+            if z != zero(T)
+                for j in 1:length(long)
+                    result[i+j-1] += long[j] * z
+                end
+            end
+        end
+        if result[end] == zero(T)
+            i = length(result)
+            while i > 0 && result[i] == zero(T)
+                i -= 1
+            end
+            result = result[1:i]
+        end
+        ZPoly{T}(result)
+    end
+end
+
+function divmod{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
+    @assert length(b) > 0 "division by zero polynomial"
+    if length(a) == 0
+        (a, a)
+    elseif length(b) == 1 && b[1] == one(T)
+        (a, zero(T))
+    elseif length(b) > length(a)
+        (zero(T), a)
+    else 
+        # TODO
+        result = zeros(T, length(long) + length(short) - 1)
+        for (i, z) in enumerate(short)
+            if z != zero(T)
+                for j in 1:length(long)
+                    result[i+j-1] += long[j] * z
+                end
+            end
+        end
+        if result[end] == zero(T)
+            i = length(result)
+            while i > 0 && result[i] == zero(T)
+                i -= 1
+            end
+            result = result[1:i]
+        end
+        ZPoly{T}(result)
+    end
+end
+
+
+
+
+
+
+
+
+
+# --- polynomials over integers modulo n
+
+
 # instead of re-inventing the wheel we extend the existing Polynomial module
 # (note that these store in an array from high to low)
 
