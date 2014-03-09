@@ -256,7 +256,6 @@ tuple_to_poly{Z<:ZModN}(::Type{Z}, t::Tuple) = Poly([map(i -> duplicate(Z, i), t
 # --- factor rings and fields
 
 
-# this assumes the factor is irreducible
 abstract FModN{Z<:ZModN, F} <: Real
 
 immutable FRing{Z<:ZModN, F<:Tuple} <: FModN{Z,F}
