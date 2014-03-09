@@ -27,6 +27,8 @@ Answering [this
 question](http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation):
 
 ```
+julia> using IntModN
+
 @zfield 2 begin
     A = [1 1 1 0; 
          1 1 0 1;
@@ -41,8 +43,6 @@ end
 ### Polynomial Arithmetic in GF(2)
 
 ```
-julia> using IntModN
-
 julia> x = X(GF2)
 P(ZField{2,Int64},1,0)
 
@@ -65,11 +65,6 @@ The multiplication [described
 here](http://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael.27s_finite_field):
 
 ```
-julia> using IntModN
-
-julia> x = X(GF2)
-P(ZField{2,Int64},1,0)
-
 julia> rijndael = x^8 + x^4 + x^3 + x + 1
 P(ZField{2,Int64},1,0,0,0,1,1,0,1,1)
 
