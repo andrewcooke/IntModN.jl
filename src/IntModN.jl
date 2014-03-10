@@ -180,33 +180,37 @@ end
 
 
 
-# --- polynomials over integers modulo n
+# --- polynomials
 
 
-immutable ZPoly{T<:ZModN}
-    a::Array{T,1}
-    ZPoly(a) = length(a) == 0 || a[end] > zero(T) ? new(a) : error("zero leading coeff")
+# unlike Polynomial.jl we don't try to handle reals that are close to
+# zero; this code is intended mainly for integers, but if it works
+# for reals for you, great (this code used to use Polynomial.jl, but
+# it didn't extend Number and had various ther small issues).
+
+# like Polynomial.jl we store the coeffs "backwards"; unlike that
+# package we expect the array to be trnucated so that the first value
+# is non-zero.
+
+immutable ZPoly{T<:Number} <: Number
+    a::Vector{T}
+    ZPoly(a) = length(a) == 0 || a[0] > zero(T) ? new(a) : error("zero leading coeff")
 end
-
 
 # constructors
 
-# note that index pairs (i, z) are 0-indexed, despite julia being 1-indexed
-# anything else is just hopelessly counterintuitive when read as a polynomial
+function validate{N}(coeffs::Vector{N})
+    start = 1
+    while start < length(coeffs) && coeffs[start] == zero(N)
+        start += 1
+    end
+    start == 1 ? coeffs : coeffs[start:end]
+end
+
 ZP() = error("provide at least one (zero?) coeff")
 ZP(c::Function) = error("provide at least one (zero?) coeff")
-function ZP{T<:ZModN}(coeffs::(Int, T)...)
-    coeffs = collect(filter(c -> c[2] > zero(T), coeffs))
-    m = length(coeffs) == 0 ? 0 : 1 + maximum([i for (i, z) in coeffs])
-    a = zeros(T, m)
-    for (i, z) in coeffs
-        a[i+1] = z
-    end
-    ZPoly{T}(a)
-end
-ZP{I<:Integer}(c::Function, coeffs::(Int, I)...) = ZP([(i, c(n)) for (i, n) in coeffs]...)
-ZP{T<:ZModN}(z::T...) = ZP([(i-1,z[i]) for i in 1:length(z)]...)
-ZP{I<:Integer}(c::Function, i::I...) = ZP(c, [(j-1,i[j]) for j in 1:length(i)]...)
+ZP(c::Function, coeffs...) = ZP(map(c, coeffs))
+ZP(coeffs...) = ZPoly(validate([coeffs...]))
 
 # number methods
 
@@ -214,31 +218,35 @@ zero{T<:ZModN}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
 one{T<:ZModN}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
 
 # does not create a new copy
-convert{T<:ZModN}(::Type{Array{T,1}}, a::ZPoly{T}) = a.a
+convert{T<:ZModN}(::Type{Vector{T}}, a::ZPoly{T}) = a.a
 modulus{T<:ZModN}(::ZPoly{T}) = modulus(T)
 modulus{T<:ZModN}(::Type{ZPoly{T}}) = modulus(T)
 
-showcompact{T<:ZModN}(io::IO, p::ZPoly{T}) = showcompact(io, convert(Array{T,1}, p))
+showcompact{T<:ZModN}(io::IO, p::ZPoly{T}) = showcompact(io, convert(Vector{T}, p))
 function show{T<:ZModN}(io::IO, p::ZPoly{T})
     n = length(p.a)
     if n == 0
        print(io, "0")
     else
-        for i in n:-1:1
-            if p.a[i] > zero(T)
-                if i < n
-                    print(io, " + ")
+        for i in 1:n
+            if p.a[i] != zero(T)
+                if i == 1
+                    if p.a[i] < zero(T)
+                        print(io, "-")
+                    end
+                else
+                    print(io, p.a[i] < zero(T) ? " - " : " + ")
                 end
-                if p.a[i] > one(T) || i == 1
-                    showcompact(io, p.a[i])
-                    if i > 1
+                if p.a[i] != one(T) || i == n
+                    showcompact(io, abs(p.a[i]))
+                    if i != n
                         print(io, " ")
                     end
                 end
-                if i == 2
+                if i == n - 1
                     print(io, "x")
-                elseif i > 2
-                    print(io, "x^$(i-1)")
+                elseif i < n - 1
+                    print(io, "x^$(n-i)")
                 end
             end
         end
@@ -246,68 +254,63 @@ function show{T<:ZModN}(io::IO, p::ZPoly{T})
     print(io, " mod $(modulus(T))")
 end
 
-=={T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
-<={T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a <= b.a
-<{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = a.a < b.a
+# TODO - these broken?
+=={T}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
+<={T}(a::ZPoly{T}, b::ZPoly{T}) = a.a <= b.a
+<{T}(a::ZPoly{T}, b::ZPoly{T}) = a.a < b.a
 length(a::ZPoly) = length(a.a)
 
 # can be accessed and modified as arrays
-getindex{T<:ZModN}(a::ZPoly{T}, i) = getindex(a.a, i)
-setindex!{T<:ZModN}(a::ZPoly{T}, v::T, i) = setindex!(a, v, i)
-start{T<:ZModN}(a::ZPoly{T}) = 1
-done{T<:ZModN}(a::ZPoly{T}, i) = i > length(a)
-next{T<:ZModN}(a::ZPoly{T}, i) = (a[i], i+1)
+getindex(a::ZPoly, i) = getindex(a.a, i)
+setindex!{T}(a::ZPoly{T}, v::T, i) = setindex!(a, v, i)
+start(a::ZPoly) = 1
+done(a::ZPoly{T}, i) = i > length(a)
+next(a::ZPoly{T}, i) = (a[i], i+1)
 
-# apply function, discarding zeros from highest index end
+# apply function, discarding zeros from start if shrink
 function apply{T}(f, a::Array{T,1}, b::Array{T,1}; shrink=true)
-    na, nb = length(a), length(b)
-    c = na > nb ? copy(a) : copy(b)
-    shrink = shrink && na == nb
-    for i in min(na, nb):-1:1
-        x = f(a[i], b[i])
+    (big, small) = length(a) > length(b) ? (a, b) : (b, a)
+    result = copy(big)
+    d = length(big) - length(small)
+    shrink = shrink && d == 0
+    for (i, z) in enumerate(small)
+        x = f(big[i+d], z)
         if x != zero(T) && shrink
-            c = c[1:i]
+            result = result[i:end]  # d == 0
             shrink = false
         end
         if !shrink
-            c[i] = x
+            result[i+d] = x
         end
     end
     if shrink
-        c = T[]
+        result = T[]
     end
-    c
+    result
 end    
 
-liftp(c, f, a) = c(f(a.a))
+liftp(ca, f, a) = c(f(a.a))
 liftp(c, f, a, b) = c(apply(f, a.a, b.a))
--{T<:ZModN}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
-+{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, +, a, b)
--{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, -, a, b)
+-{T}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
++{T}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, +, a, b)
+-{T}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, -, a, b)
 
-function *{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
-    (long, short) = length(a) > length(b) ? (a, b) : (b, a)
-    if length(short) == 0
-        short
-    elseif length(short) == 1 && short[1] == one(T)
-        long
+function *{T}(a::ZPoly{T}, b::ZPoly{T})
+    (big, small) = length(a) > length(b) ? (a, b) : (b, a)
+    if length(small) == 0
+        small
+    elseif length(small) == 1 && small[1] == one(T)
+        big
     else
-        result = zeros(T, length(long) + length(short) - 1)
-        for (i, z) in enumerate(short)
+        result = zeros(T, length(big) + length(small) - 1)
+        for (i, z) in enumerate(small)
             if z != zero(T)
-                for j in 1:length(long)
-                    result[i+j-1] += long[j] * z
+                for (j, w) in enumerate(big)
+                    result[i+j-1] += w * z
                 end
             end
         end
-        if result[end] == zero(T)
-            i = length(result)
-            while i > 0 && result[i] == zero(T)
-                i -= 1
-            end
-            result = result[1:i]
-        end
-        ZPoly{T}(result)
+        ZP(result)  # truncates
     end
 end
 
@@ -321,11 +324,11 @@ function divmod{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
         (zero(T), a)
     else 
         # TODO
-        result = zeros(T, length(long) + length(short) - 1)
-        for (i, z) in enumerate(short)
+        result = zeros(T, length(big) + length(small) - 1)
+        for (i, z) in enumerate(small)
             if z != zero(T)
-                for j in 1:length(long)
-                    result[i+j-1] += long[j] * z
+                for j in 1:length(big)
+                    result[i+j-1] += big[j] * z
                 end
             end
         end
