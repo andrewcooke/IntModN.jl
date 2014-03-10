@@ -138,12 +138,12 @@ end
 
 function test_p_constructor()
 
-    x = Poly([GF2(1), GF2(0)])
-    @assert Poly([GF2(1), GF2(0), GF2(1), GF2(0)]) == x^3 + x
+    x = ZP([GF2(1), GF2(0)])
+    @assert ZP([GF2(1), GF2(0), GF2(1), GF2(0)]) == x^3 + x
     x = X(ZF(5))
-    @assert Poly([ZF(5,2), ZF(5,3), ZF(5,4)]) == 2x^2 + 3x + 4
+    @assert ZP([ZF(5,2), ZF(5,3), ZF(5,4)]) == 2x^2 + 3x + 4
     x = X(ZField{3, Int})
-    @assert x + 1 == Poly([ZF(3,1), ZF(3,1)])
+    @assert x + 1 == ZP([ZF(3,1), ZF(3,1)])
 
     x = X(GF2)
     @assert P(GF2, 1, 1, 0) == x^2 + x

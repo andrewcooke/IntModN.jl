@@ -25,7 +25,7 @@ import Base: show, showcompact, zero, one, inv, real, abs, convert,
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
 # Pkg.clone("https://github.com/vtjnash/Polynomial.jl")
-using Polynomial
+#using Polynomial
 
 export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, Poly, X, P,
        order, modulus, factor, itype,
@@ -36,11 +36,15 @@ export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, Poly, X, P,
 # --- integers modulo n
 
 
+# Using Integer as the base type here as: (1) some numeric type seems
+# to be necessary to access many generic numerical functions; (2) need
+# Real to use comparisons; (3) have integer-like accuracy behaviour
+# (no need to worry about rounding etc).
+
+abstract ZModN{N, I<:Integer} <: Integer
+
 # we need two types here because prime moduli have a faster inverse
 # (via euler's theorem) (note - we do NOT test for primality).
-
-# Real rather than Number because we want < etc to work
-abstract ZModN{N, I<:Integer} <: Real
 
 # you can construct these directly, but code assumes that the integer is
 # already reduced mod N, that capacities are ok, etc.
@@ -56,17 +60,17 @@ end
 
 # but typically you would use one of these constructors
 
-function validate{I<:Integer}(n::Int, i::I)
+function prepare_z{I<:Integer}(n::Int, i::I)
     @assert n > 0 "modulus ($n) too small"
     @assert n <= typemax(typeof(i)) "modulus ($n) too large for $(typeof(i))"
     mod(i, n)
 end
 
-ZR{I<:Integer}(n::Int, i, ::Type{I}) = ZRing{n,I}(validate(n, convert(I, i)))
-ZR(n, i::Integer) = ZRing{n, typeof(i)}(validate(n, i))
+ZR{I<:Integer}(n::Int, i, ::Type{I}) = ZRing{n,I}(prepare_z(n, convert(I, i)))
+ZR(n, i::Integer) = ZRing{n, typeof(i)}(prepare_z(n, i))
 ZR(n) = i::Integer -> ZR(n, i)  # used to construct constructors
-ZF{I<:Integer}(n::Int, i, ::Type{I}) = ZField{n,I}(validate(n, convert(I, i)))
-ZF(n, i::Integer) = ZField{n, typeof(i)}(validate(n, i))
+ZF{I<:Integer}(n::Int, i, ::Type{I}) = ZField{n,I}(prepare_z(n, convert(I, i)))
+ZF(n, i::Integer) = ZField{n, typeof(i)}(prepare_z(n, i))
 ZF(n) = i::Integer -> ZF(n, i)  # used to construct constructors
 
 GF2 = ZF(2)
@@ -79,7 +83,7 @@ order{T<:ZModN}(::T) = modulus(T)
 itype{N, I<:Integer}(::Type{ZModN{N, I}}) = I
 itype{T<:ZModN}(::Type{T}) = itype(super(T))  # jameson type chain
 itype{T<:ZModN}(::T) = itype(T)
-duplicate{Z<:ZModN}(::Type{Z}, i::Integer) = Z(validate(modulus(Z), convert(itype(Z), i)))
+duplicate{Z<:ZModN}(::Type{Z}, i::Integer) = Z(prepare_z(modulus(Z), convert(itype(Z), i)))
 
 # all the methods that make these numbers
 
@@ -183,23 +187,16 @@ end
 # --- polynomials
 
 
-# unlike Polynomial.jl we don't try to handle reals that are close to
-# zero; this code is intended mainly for integers, but if it works
-# for reals for you, great (this code used to use Polynomial.jl, but
-# it didn't extend Number and had various ther small issues).
-
-# like Polynomial.jl we store the coeffs "backwards"; unlike that
-# package we expect the array to be truncated so that the first value
-# is non-zero.
-
-immutable ZPoly{T<:Number} <: Number
+# started with Polynomial.jl, but that has various issues; this is
+# less general.
+immutable ZPoly{T<:Integer} <: Integer
     a::Vector{T}
     ZPoly(a) = length(a) == 0 || a[0] > zero(T) ? new(a) : error("zero leading coeff")
 end
 
 # constructors
 
-function validate{N}(coeffs::Vector{N})
+function prepare_p{N}(coeffs::Vector{N})
     start = 1
     while start < length(coeffs) && coeffs[start] == zero(N)
         start += 1
@@ -210,7 +207,7 @@ end
 ZP() = error("provide at least one (zero?) coeff")
 ZP(c::Function) = error("provide at least one (zero?) coeff")
 ZP(c::Function, coeffs...) = ZP(map(c, coeffs))
-ZP(coeffs...) = ZPoly(validate([coeffs...]))
+ZP(coeffs::Real...) = ZPoly(prepare_p([coeffs...]))
 
 # can be accessed and modified as arrays
 getindex(a::ZPoly, i) = getindex(a.a, i)
@@ -269,7 +266,7 @@ length(a::ZPoly) = length(a.a)
 
 # apply function, discarding zeros from start if shrink
 function apply{T}(f, a::Array{T,1}, b::Array{T,1}; shrink=true)
-    (big, small) = length(a) > length(b) ? (a, b) : (b, a)
+    big, small = length(a) > length(b) ? (a, b) : (b, a)
     result = copy(big)
     d = length(big) - length(small)
     shrink = shrink && d == 0
@@ -296,7 +293,7 @@ liftp(c, f, a, b) = c(apply(f, a.a, b.a))
 -{T}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, -, a, b)
 
 function *{T}(a::ZPoly{T}, b::ZPoly{T})
-    (big, small) = length(a) > length(b) ? (a, b) : (b, a)
+    big, small = length(a) > length(b) ? (a, b) : (b, a)
     if length(small) == 0
         small
     elseif length(small) == 1 && small[1] == one(T)
@@ -314,7 +311,7 @@ function *{T}(a::ZPoly{T}, b::ZPoly{T})
     end
 end
 
-function divmod{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
+function divrem{T}(a::ZPoly{T}, b::ZPoly{T})
     @assert length(b) > 0 "division by zero polynomial"
     if length(a) == 0
         (a, a)
@@ -325,26 +322,20 @@ function divmod{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
     elseif a == b
         (one(T), zero(T))
     else 
-        # TODO
-        result = zeros(T, length(big) + length(small) - 1)
-        for (i, z) in enumerate(small)
-            if z != zero(T)
-                for j in 1:length(big)
-                    result[i+j-1] += big[j] * z
-                end
+        shift = length(a) - length(b)
+        rem, div = copy(a), zeros(T, shift + 1)
+        for s in shift:-1:0
+            factor = rem[s+1] / b[1]
+            div[s+1] = factor
+            for i in 1:length(rem)
+                rem[s+i] = rem[s+i] - factor * b[i]
             end
         end
-        if result[end] == zero(T)
-            i = length(result)
-            while i > 0 && result[i] == zero(T)
-                i -= 1
-            end
-            result = result[1:i]
-        end
-        ZPoly{T}(result)
+        (ZP(div), rem[1] == zero(T) ? ZP(rem.a) : rem)
     end
 end
 
+-{T}(a::ZPoly{T}, b::ZPoly{T}) = divrem(a, b)[2]
 
 
 
@@ -431,16 +422,17 @@ tuple_to_poly{Z<:ZModN}(::Type{Z}, t::Tuple) = Poly([map(i -> duplicate(Z, i), t
 
 abstract FModN{Z<:ZModN, F} <: Real
 
+# assumes already reduced
 immutable FRing{Z<:ZModN, F<:Tuple} <: FModN{Z,F}
     p::Poly{Z}
 end
 
-function validate{Z<:ZModN}(p::Poly{Z}, f::Poly{Z})
+function prepare_f{Z<:ZModN}(p::Poly{Z}, f::Poly{Z})
     a, b = divrem(p, f)
     b
 end
 
-FR{Z<:ZModN}(p::Poly{Z}, f::Poly{Z}) = FRing{Z, poly_to_tuple(f)}(validate(p, f))
+FR{Z<:ZModN}(p::Poly{Z}, f::Poly{Z}) = FRing{Z, poly_to_tuple(f)}(prepare_f(p, f))
 
 factor{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = tuple_to_poly(Z, F)
 factor{Z<:ZModN, F<:Tuple}(::FRing{Z, F}) = factor(FRing{Z, F})
