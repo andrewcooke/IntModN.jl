@@ -212,6 +212,13 @@ ZP(c::Function) = error("provide at least one (zero?) coeff")
 ZP(c::Function, coeffs...) = ZP(map(c, coeffs))
 ZP(coeffs...) = ZPoly(validate([coeffs...]))
 
+# can be accessed and modified as arrays
+getindex(a::ZPoly, i) = getindex(a.a, i)
+setindex!{T}(a::ZPoly{T}, v::T, i) = setindex!(a, v, i)
+start(a::ZPoly) = 1
+done(a::ZPoly{T}, i) = i > length(a)
+next(a::ZPoly{T}, i) = (a[i], i+1)
+
 # number methods
 
 zero{T}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
@@ -259,13 +266,6 @@ end
 <={T}(a::ZPoly{T}, b::ZPoly{T}) = a.a <= b.a
 <{T}(a::ZPoly{T}, b::ZPoly{T}) = a.a < b.a
 length(a::ZPoly) = length(a.a)
-
-# can be accessed and modified as arrays
-getindex(a::ZPoly, i) = getindex(a.a, i)
-setindex!{T}(a::ZPoly{T}, v::T, i) = setindex!(a, v, i)
-start(a::ZPoly) = 1
-done(a::ZPoly{T}, i) = i > length(a)
-next(a::ZPoly{T}, i) = (a[i], i+1)
 
 # apply function, discarding zeros from start if shrink
 function apply{T}(f, a::Array{T,1}, b::Array{T,1}; shrink=true)
