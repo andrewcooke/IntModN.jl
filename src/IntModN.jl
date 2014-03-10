@@ -189,7 +189,7 @@ end
 # it didn't extend Number and had various ther small issues).
 
 # like Polynomial.jl we store the coeffs "backwards"; unlike that
-# package we expect the array to be trnucated so that the first value
+# package we expect the array to be truncated so that the first value
 # is non-zero.
 
 immutable ZPoly{T<:Number} <: Number
@@ -214,31 +214,31 @@ ZP(coeffs...) = ZPoly(validate([coeffs...]))
 
 # number methods
 
-zero{T<:ZModN}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
-one{T<:ZModN}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
+zero{T}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
+one{T}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
 
 # does not create a new copy
-convert{T<:ZModN}(::Type{Vector{T}}, a::ZPoly{T}) = a.a
-modulus{T<:ZModN}(::ZPoly{T}) = modulus(T)
-modulus{T<:ZModN}(::Type{ZPoly{T}}) = modulus(T)
+convert{T}(::Type{Vector{T}}, a::ZPoly{T}) = a.a
+modulus{T}(::ZPoly{T}) = modulus(T)
+modulus{T}(::Type{ZPoly{T}}) = modulus(T)
 
-showcompact{T<:ZModN}(io::IO, p::ZPoly{T}) = showcompact(io, convert(Vector{T}, p))
-function show{T<:ZModN}(io::IO, p::ZPoly{T})
-    n = length(p.a)
+showcompact(io::IO, p::ZPoly) = showcompact(io, p.a)
+function show{T}(io::IO, p::ZPoly{T})
+    n = length(p)
     if n == 0
        print(io, "0")
     else
         for i in 1:n
-            if p.a[i] != zero(T)
+            if p[i] != zero(T)
                 if i == 1
-                    if p.a[i] < zero(T)
+                    if p[i] < zero(T)
                         print(io, "-")
                     end
                 else
-                    print(io, p.a[i] < zero(T) ? " - " : " + ")
+                    print(io, p[i] < zero(T) ? " - " : " + ")
                 end
-                if p.a[i] != one(T) || i == n
-                    showcompact(io, abs(p.a[i]))
+                if p[i] != one(T) || i == n
+                    showcompact(io, abs(p[i]))
                     if i != n
                         print(io, " ")
                     end
@@ -289,7 +289,7 @@ function apply{T}(f, a::Array{T,1}, b::Array{T,1}; shrink=true)
     result
 end    
 
-liftp(ca, f, a) = c(f(a.a))
+liftp(c, f, a) = c(f(a.a))
 liftp(c, f, a, b) = c(apply(f, a.a, b.a))
 -{T}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
 +{T}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, +, a, b)
@@ -322,6 +322,8 @@ function divmod{T<:ZModN}(a::ZPoly{T}, b::ZPoly{T})
         (a, zero(T))
     elseif length(b) > length(a)
         (zero(T), a)
+    elseif a == b
+        (one(T), zero(T))
     else 
         # TODO
         result = zeros(T, length(big) + length(small) - 1)
