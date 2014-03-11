@@ -44,16 +44,16 @@ end
 
 ```
 julia> x = X(GF2)
-P(ZField{2,Int64},1,0)
+ZP(ZField{2,Int64},1,0)
 
 julia> a = x^3 + x^2 + 1
-P(ZField{2,Int64},1,1,0,1)
+ZP(ZField{2,Int64},1,1,0,1)
 
 julia> b = x^2 + 1
-P(ZField{2,Int64},1,0,1)
+ZP(ZField{2,Int64},1,0,1)
 
 julia> p, q = divrem(a, b)
-(P(ZField{2,Int64},1,1),P(ZField{2,Int64},1,0))
+(ZP(ZField{2,Int64},1,1),ZP(ZField{2,Int64},1,0))
 
 julia> println(p * b + q)
 x^3 + x^2 + 1 mod 2

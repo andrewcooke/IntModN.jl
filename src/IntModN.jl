@@ -384,68 +384,56 @@ end
 
 /{T}(a::ZPoly{T}, b::ZPoly{T}) = divrem(a, b)[1]
 %{T}(a::ZPoly{T}, b::ZPoly{T}) = divrem(a, b)[2]
+# ^ will come from power_by_squaring in stdlib
 
 
 
+# --- factor rings and fields
 
 
+abstract FModN{Z<:ZModN, F} <: Real
 
+# assumes already reduced
+immutable FRing{Z<:ZModN, F<:Tuple} <: FModN{Z,F}
+    p::Poly{Z}
+end
 
+function prepare_f{Z<:ZModN}(p::Poly{Z}, f::Poly{Z})
+    a, b = divrem(p, f)
+    b
+end
 
+FR{Z<:ZModN}(p::Poly{Z}, f::Poly{Z}) = FRing{Z, poly_to_tuple(f)}(prepare_f(p, f))
 
+factor{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = tuple_to_poly(Z, F)
+factor{Z<:ZModN, F<:Tuple}(::FRing{Z, F}) = factor(FRing{Z, F})
+modulus{Z<:ZModN, F}(::Type{FModN{Z,F}}) = modulus(Z)
+modulus{F<:FModN}(::F) = modulus(F)
+# TODO wrong - see http://mathworld.wolfram.com/PolynomialOrder.html
+order{F<:FModN}(::Type{F}) = modulus(F) ^ Polynomial.deg(factor(F))
+order{F<:FModN}(::F) = order(F)
 
+zero{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FRing(Poly(zero(Z)), tuple_to_poly(Z, F))
+one{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FRing(Poly(one(Z)), tuple_to_poly(Z, F))
 
-# the defaults repeat "mod n" all over the place
+function show(io::IO, r::FRing)
+    print(io, "FR(")
+    show(io, r.p)
+    print(io, ",")
+    show(io, factor(r))
+    print(io, ")")
+end
 
+function print(io::IO, r::FRing)
+    print_no_mod(io, r.p)
+    print(io, " mod ");
+    print(io, factor(r))
+end
 
-
-
-## --- factor rings and fields
-#
-#
-#abstract FModN{Z<:ZModN, F} <: Real
-#
-## assumes already reduced
-#immutable FRing{Z<:ZModN, F<:Tuple} <: FModN{Z,F}
-#    p::Poly{Z}
-#end
-#
-#function prepare_f{Z<:ZModN}(p::Poly{Z}, f::Poly{Z})
-#    a, b = divrem(p, f)
-#    b
-#end
-#
-#FR{Z<:ZModN}(p::Poly{Z}, f::Poly{Z}) = FRing{Z, poly_to_tuple(f)}(prepare_f(p,# f))
-#
-#factor{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = tuple_to_poly(Z, F)
-#factor{Z<:ZModN, F<:Tuple}(::FRing{Z, F}) = factor(FRing{Z, F})
-#modulus{Z<:ZModN, F}(::Type{FModN{Z,F}}) = modulus(Z)
-#modulus{F<:FModN}(::F) = modulus(F)
-## wrong - see http://mathworld.wolfram.com/PolynomialOrder.html
-#order{F<:FModN}(::Type{F}) = modulus(F) ^ Polynomial.deg(factor(F))
-#order{F<:FModN}(::F) = order(F)
-#
-#zero{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FRing(Poly(zero(Z)), tuple_to_#poly(Z, F))
-#one{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FRing(Poly(one(Z)), tuple_to_po#ly(Z, F))
-#
-#function show(io::IO, r::FRing)
-#    print(io, "FR(")
-#    show(io, r.p)
-#    print(io, ",")
-#    show(io, factor(r))
-#    print(io, ")")
-#end
-#
-#function print(io::IO, r::FRing)
-#    print_no_mod(io, r.p)
-#    print(io, " mod ");
-#    print(io, factor(r))
-#end
-#
-#liftf{F<:FRing}(f, a::F, b::F) = FR(f(a.p, b.p), factor(F))
-#+{F<:FRing}(a::F, b::F) = liftf(+, a, b)
-#-{F<:FRing}(a::F, b::F) = liftf(-, a, b)
-#*{F<:FRing}(a::F, b::F) = liftf(*, a, b)
+liftf{F<:FRing}(f, a::F, b::F) = FR(f(a.p, b.p), factor(F))
++{F<:FRing}(a::F, b::F) = liftf(+, a, b)
+-{F<:FRing}(a::F, b::F) = liftf(-, a, b)
+*{F<:FRing}(a::F, b::F) = liftf(*, a, b)
 
 
 
