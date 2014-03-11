@@ -30,17 +30,17 @@ function test_z_constructor()
         @assert search(string(e), "too large") != 0:-1 
     end
 
-    z = ZF(5,3)
-    @assert z == IntModN.duplicate(typeof(z), 8)
+#    z = ZF(5,3)
+#    @assert z == IntModN.duplicate(typeof(z), 8)
 
     println("test_z_constructor ok")
 end
 
 function test_z_random()
     @assert isa(rand(ZRing{3,Uint}), ZRing{3,Uint})
-    a = rand(ZField{4,Uint8}, 2, 3)
+    a = rand(ZField{5,Uint8}, 2, 3)
     @assert size(a) == (2, 3)
-    @assert isa(a, Array{ZField{4,Uint8},2})
+    @assert isa(a, Array{ZField{5,Uint8},2})
     println("test_z_random ok")
 end
 
@@ -146,9 +146,9 @@ function test_p_constructor()
     @assert x + 1 == ZP([ZF(3,1), ZF(3,1)])
 
     x = X(GF2)
-    @assert P(GF2, 1, 1, 0) == x^2 + x
-    @assert P(ZF(2), [1, 1, 0]) == x^2 + x
-    @assert P(ZField{2,Int}, [1, 1, 0]) == x^2 + x
+    @assert ZP(GF2, 1, 1, 0) == x^2 + x
+    @assert ZP(ZF(2), [1, 1, 0]) == x^2 + x
+    @assert ZP(ZField{2,Int}, [1, 1, 0]) == x^2 + x
 
     p = x^2 + x
     @assert IntModN.poly_to_tuple(p) == (1, 1, 0)
