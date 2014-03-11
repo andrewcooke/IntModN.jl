@@ -211,6 +211,8 @@ end
 
 ZP() = error("provide at least one (zero?) coeff")
 ZP(c::Function) = error("provide at least one (zero?) coeff")
+ZP(t::Type, coeffs::Vector) = ZP(map(c -> convert(t, c), coeffs))
+ZP(t::Type, coeffs...) = ZP([map(c -> convert(t, c), coeffs)...])
 ZP(c::Function, coeffs::Vector) = ZP(map(c, coeffs))
 ZP(c::Function, coeffs...) = ZP([map(c, coeffs)...])
 ZP{I<:Integer}(coeffs::Vector{I}) = ZPoly{I}(prepare_p(coeffs))
@@ -226,7 +228,7 @@ X{Z<:ZModN}(::Type{Z}) = ZP([one(Z), zero(Z)])
 modulus{T}(::ZPoly{T}) = modulus(T)
 modulus{T}(::Type{ZPoly{T}}) = modulus(T)
 
-# this promotion to wrote x^2+1 etc
+# this promotion to write x^2+1 etc
 convert{I<:Integer}(::Type{ZPoly{I}}, p::ZPoly{I}) = p
 promote_rule{I<:Integer}(::Type{ZPoly{I}}, ::Type{Int}) = ZPoly{I}
 convert{I<:Integer}(::Type{ZPoly{I}}, i::Integer) = ZP([convert(I, i)])
