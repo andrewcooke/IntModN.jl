@@ -205,7 +205,7 @@ end
 
 function prepare_p{N}(coeffs::Vector{N})
     start = 1
-    while start < length(coeffs) && coeffs[start] == zero(N)
+    while start <= length(coeffs) && coeffs[start] == zero(N)
         start += 1
     end
     start == 1 ? coeffs : coeffs[start:end]
@@ -228,7 +228,7 @@ tuple_to_poly{I<:Integer}(::Type{I}, t::Tuple) = ZPoly{I}([map(i -> convert(I, i
 # nice syntax for creating polynomials.
 # use x=X(ZF(2)) or x=X(GF2) or x=X(ZField{2,Int}) and then x^2+3 etc
 X(c::Function) = ZP([c(1), c(0)])
-X{Z<:ZModN}(::Type{Z}) = ZP([one(Z), zero(Z)])
+X{I<:Integer}(::Type{I}) = ZP([one(I), zero(I)])
 
 # does not create a new copy
 #convert{T}(::Type{Vector{T}}, a::ZPoly{T}) = a.a
@@ -251,15 +251,11 @@ next(a::ZPoly, i) = (a[i], i+1)
 
 show_int{N,I<:Unsigned}(io::IO, z::ZModN{N,I}) = show(io, convert(I, z))
 show_int{N,I<:Integer}(io::IO, z::ZModN{N,I}) = show(io, convert(I, z))
-show_int{I<:Integer}(io::IO, i::I) = show(io, convert(I, z))
+show_int{I<:Integer}(io::IO, i::I) = show(io, convert(I, i))
+show_mod{Z<:ZModN}(io::IO, p::ZPoly{Z}) = print(io, " mod $(modulus(Z))")
+show_mod{I<:Integer}(io::IO, p::ZPoly{I}) = nothing
 
-showcompact(io::IO, p::ZPoly) = showcompact(io, p.a)
-function print{Z<:ZModN}(io::IO, p::ZPoly{Z})
-    print_no_mod(io, p)
-    print(io, " mod $(modulus(Z))")
-end
-
-function print_no_mod{I<:Integer}(io::IO, p::ZPoly{I})
+function show_no_mod{I<:Integer}(io::IO, p::ZPoly{I})
     n = length(p)
     if n <= 0
         show_int(io, zero(I))
@@ -288,6 +284,11 @@ function print_no_mod{I<:Integer}(io::IO, p::ZPoly{I})
     end
 end
 
+function print{I<:Integer}(io::IO, p::ZPoly{I})
+    show_no_mod(io, p)
+    show_mod(io, p)
+end
+
 function show{I<:Integer}(io::IO, p::ZPoly{I})
     print(io, "ZP($I")
     for i in 1:length(p)
@@ -296,6 +297,8 @@ function show{I<:Integer}(io::IO, p::ZPoly{I})
     end
     print(io, ")")
 end
+
+showcompact(io::IO, p::ZPoly) = showcompact(io, p.a)
 
 # number methods
 
@@ -351,7 +354,7 @@ function *{T}(a::ZPoly{T}, b::ZPoly{T})
                 end
             end
         end
-        ZP(result)  # truncates
+        ZP(result)
     end
 end
 
@@ -367,11 +370,11 @@ function divrem{T}(a::ZPoly{T}, b::ZPoly{T})
         (one(T), zero(T))
     else 
         shift = length(a) - length(b)
-        rem, div = copy(a), zeros(T, shift + 1)
+        rem, div = copy(a.a), zeros(T, shift + 1)
         for s in shift:-1:0
             factor = rem[s+1] / b[1]
             div[s+1] = factor
-            for i in 1:length(rem)
+            for i in 1:length(b)
                 rem[s+i] = rem[s+i] - factor * b[i]
             end
         end

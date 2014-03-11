@@ -144,6 +144,9 @@ function test_p_constructor()
     @assert ZP([ZF(5,2), ZF(5,3), ZF(5,4)]) == 2x^2 + 3x + 4
     x = X(ZField{3, Int})
     @assert x + 1 == ZP([ZF(3,1), ZF(3,1)])
+    @assert x + 1 == ZP(ZF(3,1), ZF(3,1))
+    @assert x + 1 == ZP(ZField{3, Int}, [1, 1])
+    @assert x + 1 == ZP(ZField{3, Int}, 1, 1)
 
     x = X(GF2)
     @assert ZP(GF2, 1, 1, 0) == x^2 + x
@@ -158,6 +161,11 @@ function test_p_constructor()
 end
 
 function test_p_show()
+
+    x = X(Int)
+    @assert string(3x^2 + 1) == "3x^2 + 1"
+    @assert sprint(show, 3x^2 + 1) == "ZP(Int64,3,0,1)"
+
     x = X(ZF(5))
     @assert string(3x^2 + 1) == "3x^2 + 1 mod 5"
     @assert sprint(show, 3x^2 + 1) == "ZP(ZField{5,Int64},3,0,1)"
@@ -166,6 +174,7 @@ function test_p_show()
 end
 
 function test_p_arithmetic()
+
     x = X(GF2)
     a = x^3 + x^2 + 1
     b = x^2 + 1
