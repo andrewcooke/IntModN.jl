@@ -53,6 +53,14 @@ function test_z_arithmetic()
     @assert ZF(5, 3) * ZF(5, 2) == one(ZField{5, Int})
     @assert GF2(0)^0 == GF2(1)
 
+    for i in 1:10
+        z1, z2 = ZF(5, rand(1:5)), ZF(5, rand(1:5))
+        @assert (z1 - z2) + z2 == z1
+        @assert z1 - (z2 - z2) == z1
+        @assert z2 + (z1 - z2) == z1
+    end
+    @assert ZF(5, 1) - ZF(5, 4) == ZF(5, 2)
+
     @assert modulus(GF2(1)) == order(GF2(0)) == 2
 
     try
@@ -173,6 +181,32 @@ function test_p_show()
     println("test_p_show ok")
 end
 
+function test_p_comparison()
+
+    x = X(Int)
+    @assert x + 1 == x + 1
+    @assert x^2 + 1 != x + 1
+
+    for i in 1:10
+        a = ZP(rand!(Array(ZField{5, Int}, rand(0:2))))
+        b = ZP(rand!(Array(ZField{5, Int}, rand(0:2))))
+        @assert a == b || ((a < b) $ (b < a))
+        if a < b || a == b
+            @assert a <= b
+        end
+        if a > b || a == b
+            @assert a >= b
+        end
+        if a == b
+            @assert !(a != b)
+        else
+            @assert a != b
+        end
+    end
+
+    println("test_p_comparison ok")
+end
+
 function test_p_arithmetic()
 
     x = X(GF2)
@@ -181,12 +215,20 @@ function test_p_arithmetic()
     p, q = divrem(a, b)
     @assert string(p * b + q) == "x^3 + x^2 + 1 mod 2"
 
+    x = X(ZF(5))
+    p1 =  x^5 + 3x^4 + 4x^3 + 2x^2      + 1 
+    p2 = 4x^5        + 2x^3 + 3x^2 +  x + 4
+    ex = 2x^5 + 3x^4 + 2x^3 + 4x^2 + 4x + 2
+    r = p1 - p2
+    @assert r == ex
+
     println("test_p_arithmetic ok")
 end
 
 function tests_p()
     test_p_constructor()
     test_p_show()
+    test_p_comparison()
     test_p_arithmetic()
 end
 
@@ -207,9 +249,8 @@ function test_f_rijndael()
     x = X(GF2)
     rij = x^8 + x^4 + x^3 + x + 1
     p = FR(x^7 + x^6 + x^3 + x, rij) * FR(x^6 + x^4 + x + 1, rij)
-    println("p ", p)
-    println(FR(one(rij), rij))
     @assert p == FR(one(rij), rij)
+
     println("test_f_rijndael ok")
 end
 

@@ -6,9 +6,7 @@
 # but to enable arithmetic on various types, motivated largely by the
 # practical needs of crypto code.
 
-# currently incomplete; the aim is to support rings and fields (ie
-# prime moduli) of integers, polynomials over those, and fields of
-# irreducible factor polynomials.
+# incomplete; pull requests welcome
 
 # much thanks to Andreas Noack Jensen
 # https://groups.google.com/d/msg/julia-users/Ui977brdzAU/u4rWiDeJv-MJ
@@ -196,6 +194,9 @@ end
 # started with Polynomial.jl, but that has various issues; this is
 # less general.
 
+# IMPORTANT - arrays may be shared between polynomials, so don't mutate
+# contents unless you have a new instance.
+
 immutable ZPoly{T<:Integer} <: Integer
     a::Vector{T}
     ZPoly(a) = length(a) == 0 || a[1] > zero(T) ? new(a) : error("zero leading coeff")
@@ -221,7 +222,8 @@ ZP{I<:Integer}(coeffs::Vector{I}) = ZPoly{I}(prepare_p(coeffs))
 ZP{I<:Integer}(coeffs::I...) = ZP([coeffs...])
 
 # needed below to squeeze polynomial into type
-# TODO - as convert?
+# not via convert as we don't know type (length of tuple).  
+# TODO - this may cause efficiency issues (since return type varies)?
 poly_to_tuple{I<:Integer}(p::ZPoly{I}) = tuple(map(a -> convert(Int, a), p.a)...)
 tuple_to_poly{I<:Integer}(::Type{I}, t::Tuple) = ZPoly{I}([map(i -> convert(I, i), t)...])
 
@@ -230,8 +232,6 @@ tuple_to_poly{I<:Integer}(::Type{I}, t::Tuple) = ZPoly{I}([map(i -> convert(I, i
 X(c::Function) = ZP([c(1), c(0)])
 X{I<:Integer}(::Type{I}) = ZP([one(I), zero(I)])
 
-# does not create a new copy
-#convert{T}(::Type{Vector{T}}, a::ZPoly{T}) = a.a
 modulus{T}(::ZPoly{T}) = modulus(T)
 modulus{T}(::Type{ZPoly{T}}) = modulus(T)
 
@@ -305,39 +305,55 @@ showcompact(io::IO, p::ZPoly) = showcompact(io, p.a)
 zero{T}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
 one{T}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
 
-# TODO - these broken?
 =={T}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
-<={T}(a::ZPoly{T}, b::ZPoly{T}) = a.a <= b.a
-<{T}(a::ZPoly{T}, b::ZPoly{T}) = a.a < b.a
-length(a::ZPoly) = length(a.a)
+function cmp{T}(a::ZPoly{T}, b::ZPoly{T}, eq)
+    if length(a) < length(b)
+        true
+    elseif length(a) > length(b)
+        false
+    else
+        for i in 1:length(a)
+            if a[i] < b[i]
+                return true
+            elseif a[i] > b[i]
+                return false
+            end
+        end
+        eq
+    end
+end
+<={T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, true)
+<{T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, false)
 
+# some optimisation here to reduce copying of arrays
+# big is modified; small is not - see liftp and +,- below
 # apply function, discarding zeros from start if shrink
-function apply{T}(f, a::Array{T,1}, b::Array{T,1}; shrink=true)
-    big, small = length(a) > length(b) ? (a, b) : (b, a)
-    result = copy(big)
+function apply{T}(f, big::Array{T,1}, small::Array{T,1})
     d = length(big) - length(small)
-    shrink = shrink && d == 0
-    for (i, z) in enumerate(small)
-        x = f(big[i+d], z)
+    @assert d >= 0
+    shrink = d == 0
+    for i in 1:length(small)
+        x = f(big[i+d], small[i])
         if x != zero(T) && shrink
-            result = result[i:end]  # d == 0
+            big = big[i:end]  # d == 0
+            d = 1-i
             shrink = false
         end
         if !shrink
-            result[i+d] = x
+            big[i+d] = x
         end
     end
     if shrink
-        result = T[]
+        big = T[]
     end
-    result
+    big
 end    
 
 liftp(c, f, a) = c(f(a.a))
-liftp(c, f, a, b) = c(apply(f, a.a, b.a))
+liftp(c, f, aa, ba) = c(apply(f, aa, ba))
 -{T}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
-+{T}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, +, a, b)
--{T}(a::ZPoly{T}, b::ZPoly{T}) = liftp(ZPoly{T}, -, a, b)
++{T}(a::ZPoly{T}, b::ZPoly{T}) = length(a) >= length(b) ? liftp(ZPoly{T}, +, copy(a.a), b.a) : liftp(ZPoly{T}, +, copy(b.a), a.a)
+-{T}(a::ZPoly{T}, b::ZPoly{T}) = length(a) >= length(b) ? liftp(ZPoly{T}, -, copy(a.a), b.a) : liftp(ZPoly{T}, +, -b.a, a.a)
 
 function *{T}(a::ZPoly{T}, b::ZPoly{T})
     big, small = length(a) > length(b) ? (a, b) : (b, a)
@@ -358,42 +374,45 @@ function *{T}(a::ZPoly{T}, b::ZPoly{T})
     end
 end
 
-function divrem{T}(a::ZPoly{T}, b::ZPoly{T})
+function _divrem{T}(a::Vector{T}, b::Vector{T})
     @assert length(b) > 0 "division by zero polynomial"
     if length(a) == 0
         (a, a)
     elseif length(b) == 1 && b[1] == one(T)
-        (a, zero(T))
+        (a, T[])
     elseif length(b) > length(a)
-        (zero(T), a)
+        (T[], a)
     elseif a == b
-        (one(T), zero(T))
+        ([one(T)], T[])
     else 
-        println("dividing $a by $b")
         shift = length(a) - length(b)
-        rem, div = copy(a.a), zeros(T, shift + 1)
+        rem, div = copy(a), zeros(T, shift + 1)
         for s in 0:shift
             factor = rem[s+1] / b[1]
-            println("shift $s   $(rem[s+1]) /  $(b[1])  =  $factor")
             div[s+1] = factor
             for i in 1:length(b)
                 rem[s+i] -= factor * b[i]
             end
-            println("div ", ZP(div))
-            println("rem ", ZP(rem))
         end
-        (ZP(div), ZP(rem))
+        div, rem
     end
 end
 
-/{T}(a::ZPoly{T}, b::ZPoly{T}) = divrem(a, b)[1]
-%{T}(a::ZPoly{T}, b::ZPoly{T}) = divrem(a, b)[2]
+function divrem{T}(a::ZPoly{T}, b::ZPoly{T})
+    map(ZP, _divrem(a.a, b.a))
+end
+
+/{T}(a::ZPoly{T}, b::ZPoly{T}) = ZP(_divrem(a.a, b.a)[1])
+%{T}(a::ZPoly{T}, b::ZPoly{T}) = ZP(_divrem(a.a, b.a)[2])
 # ^ will come from power_by_squaring in stdlib
+degree{T}(a::ZPoly{T}) = length(a) - 1
 
 
 
 # --- factor rings and fields
 
+
+# this all assumes that the factor poynomial is irreducible
 
 abstract FModN{Z<:ZModN, F} <: Real
 
@@ -413,8 +432,8 @@ factor{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = tuple_to_poly(Z, F)
 factor{Z<:ZModN, F<:Tuple}(::FRing{Z, F}) = factor(FRing{Z, F})
 modulus{Z<:ZModN, F}(::Type{FModN{Z,F}}) = modulus(Z)
 modulus{F<:FModN}(::F) = modulus(F)
-# TODO wrong - see http://mathworld.wolfram.com/PolynomialOrder.html
-order{F<:FModN}(::Type{F}) = modulus(F) ^ Polynomial.deg(factor(F))
+# assuming irreducible factor
+order{F<:FModN}(::Type{F}) = modulus(F) ^ degree(factor(F)) - 1
 order{F<:FModN}(::F) = order(F)
 
 zero{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FRing(Poly(zero(Z)), tuple_to_poly(Z, F))
@@ -433,6 +452,10 @@ function print(io::IO, r::FRing)
     print(io, " mod ");
     print(io, factor(r))
 end
+
+=={F<:FRing}(a::F, b::F) = a.p == b.p
+<={F<:FRing}(a::F, b::F) = a.p <= b.p
+<{F<:FRing}(a::F, b::F) = a.p < b.p
 
 liftf{F<:FRing}(f, a::F, b::F) = FR(f(a.p, b.p), factor(F))
 +{F<:FRing}(a::F, b::F) = liftf(+, a, b)
