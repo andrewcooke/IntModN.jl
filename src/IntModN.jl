@@ -357,15 +357,17 @@ liftp(c, f, aa, ba) = c(apply(f, aa, ba))
 
 function *{T}(a::ZPoly{T}, b::ZPoly{T})
     big, small = length(a) > length(b) ? (a, b) : (b, a)
-    if length(small) == 0
+    if length(small) == 0  # no need to test big
         small
     elseif length(small) == 1 && small[1] == one(T)
         big
     else
         result = zeros(T, length(big) + length(small) - 1)
-        for (i, z) in enumerate(small)
+        for i in 1:length(small)
+            z = small[i]  # enumerate above allocates new array!
             if z != zero(T)
-                for (j, w) in enumerate(big)
+                for j in 1:length(big)
+                    w = big[j]
                     result[i+j-1] += w * z
                 end
             end
