@@ -198,11 +198,24 @@ function test_f_constructor()
     x = X(GF2)
     f = FR(x^3 + x^2, x^2 + 1)
     @assert string(f) == "x + 1 mod x^2 + 1 mod 2"
-    @assert sprint(show, f) == "FR(P(ZField{2,Int64},1,1),P(ZField{2,Int64},1,0,1))"
+    @assert sprint(show, f) == "FR(ZP(ZField{2,Int64},1,1),ZP(ZField{2,Int64},1,0,1))"
+
+    println("test_f_constructor ok")
+end
+
+function test_f_rijndael()
+    x = X(GF2)
+    rij = x^8 + x^4 + x^3 + x + 1
+    p = FR(x^7 + x^6 + x^3 + x, rij) * FR(x^6 + x^4 + x + 1, rij)
+    println("p ", p)
+    println(FR(one(rij), rij))
+    @assert p == FR(one(rij), rij)
+    println("test_f_rijndael ok")
 end
 
 function tests_f()
     test_f_constructor()
+    test_f_rijndael()
 end
 
 

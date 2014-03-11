@@ -252,10 +252,10 @@ next(a::ZPoly, i) = (a[i], i+1)
 show_int{N,I<:Unsigned}(io::IO, z::ZModN{N,I}) = show(io, convert(I, z))
 show_int{N,I<:Integer}(io::IO, z::ZModN{N,I}) = show(io, convert(I, z))
 show_int{I<:Integer}(io::IO, i::I) = show(io, convert(I, i))
-show_mod{Z<:ZModN}(io::IO, p::ZPoly{Z}) = print(io, " mod $(modulus(Z))")
-show_mod{I<:Integer}(io::IO, p::ZPoly{I}) = nothing
+print_mode{Z<:ZModN}(io::IO, p::ZPoly{Z}) = print(io, " mod $(modulus(Z))")
+print_mode{I<:Integer}(io::IO, p::ZPoly{I}) = nothing
 
-function show_no_mod{I<:Integer}(io::IO, p::ZPoly{I})
+function print_no_mod{I<:Integer}(io::IO, p::ZPoly{I})
     n = length(p)
     if n <= 0
         show_int(io, zero(I))
@@ -285,8 +285,8 @@ function show_no_mod{I<:Integer}(io::IO, p::ZPoly{I})
 end
 
 function print{I<:Integer}(io::IO, p::ZPoly{I})
-    show_no_mod(io, p)
-    show_mod(io, p)
+    print_no_mod(io, p)
+    print_mode(io, p)
 end
 
 function show{I<:Integer}(io::IO, p::ZPoly{I})
@@ -369,14 +369,18 @@ function divrem{T}(a::ZPoly{T}, b::ZPoly{T})
     elseif a == b
         (one(T), zero(T))
     else 
+        println("dividing $a by $b")
         shift = length(a) - length(b)
         rem, div = copy(a.a), zeros(T, shift + 1)
-        for s in shift:-1:0
+        for s in 0:shift
             factor = rem[s+1] / b[1]
+            println("shift $s   $(rem[s+1]) /  $(b[1])  =  $factor")
             div[s+1] = factor
             for i in 1:length(b)
-                rem[s+i] = rem[s+i] - factor * b[i]
+                rem[s+i] -= factor * b[i]
             end
+            println("div ", ZP(div))
+            println("rem ", ZP(rem))
         end
         (ZP(div), ZP(rem))
     end
@@ -395,15 +399,15 @@ abstract FModN{Z<:ZModN, F} <: Real
 
 # assumes already reduced
 immutable FRing{Z<:ZModN, F<:Tuple} <: FModN{Z,F}
-    p::Poly{Z}
+    p::ZPoly{Z}
 end
 
-function prepare_f{Z<:ZModN}(p::Poly{Z}, f::Poly{Z})
+function prepare_f{Z<:ZModN}(p::ZPoly{Z}, f::ZPoly{Z})
     a, b = divrem(p, f)
     b
 end
 
-FR{Z<:ZModN}(p::Poly{Z}, f::Poly{Z}) = FRing{Z, poly_to_tuple(f)}(prepare_f(p, f))
+FR{Z<:ZModN}(p::ZPoly{Z}, f::ZPoly{Z}) = FRing{Z, poly_to_tuple(f)}(prepare_f(p, f))
 
 factor{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = tuple_to_poly(Z, F)
 factor{Z<:ZModN, F<:Tuple}(::FRing{Z, F}) = factor(FRing{Z, F})
