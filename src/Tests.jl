@@ -160,7 +160,7 @@ end
 function test_p_show()
     x = X(ZF(5))
     @assert string(3x^2 + 1) == "3x^2 + 1 mod 5"
-    @assert sprint(show, 3x^2 + 1) == "P(ZField{5,Int64},3,0,1)"
+    @assert sprint(show, 3x^2 + 1) == "ZP(ZField{5,Int64},3,0,1)"
     
     println("test_p_show ok")
 end

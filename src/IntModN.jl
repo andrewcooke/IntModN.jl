@@ -32,11 +32,9 @@ export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield,
        FModN, FRing, FR
 
 
-# as a general rule, promotion and automatic conversion are not
-# supported, except where needed either (1) to inter-operate with
-# existing linalg routins or (2) to provide a nice API (eg when
-# entering polynomials "literally" with X()).  users can always add
-# further promotion and conversion, if required.
+# we generally support promotion into tyoes here (from integers) and
+# conversion back.  but that's all.  users can add other promotion /
+# conversion if required.
 
 
 # --- integers modulo n
@@ -92,7 +90,7 @@ itype{T<:ZModN}(::T) = itype(T)
 # this looks like a convert?  what is it for?
 #duplicate{Z<:ZModN}(::Type{Z}, i::Integer) = Z(prepare_z(modulus(Z), convert(itype(Z), i)))
 
-# this because julia's comversion is pretty damn dumb at times
+# julia's comversion is pretty damn dumb at times
 convert{N,I<:Integer}(::Type{ZRing{N,I}}, a::ZRing{N,I}) = a
 convert{N,I<:Integer}(::Type{ZField{N,I}}, a::ZField{N,I}) = a
 # this promotion needed because linalg code has direct compariosn with 0
@@ -100,6 +98,10 @@ promote_rule{N, I<:Integer}(::Type{ZField{N,I}}, ::Type{Int}) = ZField{N,I}
 promote_rule{N, I<:Integer}(::Type{ZRing{N,I}}, ::Type{Int}) = ZRing{N,I}
 convert{N,I<:Integer}(::Type{ZRing{N,I}}, i::Integer) = ZR(N, convert(I, i))
 convert{N,I<:Integer}(::Type{ZField{N,I}}, i::Integer) = ZF(N, convert(I, i))
+# conversion to int, but no promotion
+for T in (Int, Uint)
+    @eval convert(::Type{$T}, z::ZModN) = convert($T, z.i)
+end
 
 # all the methods that make these numbers
 
@@ -218,6 +220,11 @@ ZP(c::Function, coeffs...) = ZP([map(c, coeffs)...])
 ZP{I<:Integer}(coeffs::Vector{I}) = ZPoly{I}(prepare_p(coeffs))
 ZP{I<:Integer}(coeffs::I...) = ZP([coeffs...])
 
+# needed below to squeeze polynomial into type
+# TODO - as convert?
+poly_to_tuple{I<:Integer}(p::ZPoly{I}) = tuple(map(a -> convert(Int, a), p.a)...)
+tuple_to_poly{I<:Integer}(::Type{I}, t::Tuple) = ZPoly{I}([map(i -> convert(I, i), t)...])
+
 # nice syntax for creating polynomials.
 # use x=X(ZF(2)) or x=X(GF2) or x=X(ZField{2,Int}) and then x^2+3 etc
 X(c::Function) = ZP([c(1), c(0)])
@@ -235,49 +242,65 @@ convert{I<:Integer}(::Type{ZPoly{I}}, i::Integer) = ZP([convert(I, i)])
 
 # can be accessed and modified (but don't do that in public) as arrays
 getindex(a::ZPoly, i) = getindex(a.a, i)
-setindex!{T}(a::ZPoly{T}, v::T, i) = setindex!(a, v, i)
+setindex!{T}(a::ZPoly{T}, v::T, i) = setindex!(a.a, v, i)
 length(a::ZPoly) = length(a.a)
 endof(a::ZPoly) = length(a)
 start(a::ZPoly) = 1
 done(a::ZPoly, i) = i > length(a)
 next(a::ZPoly, i) = (a[i], i+1)
 
-# number methods
-
-zero{T}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
-one{T}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
+show_int{N,I<:Unsigned}(io::IO, z::ZModN{N,I}) = show(io, convert(I, z))
+show_int{N,I<:Integer}(io::IO, z::ZModN{N,I}) = show(io, convert(I, z))
+show_int{I<:Integer}(io::IO, i::I) = show(io, convert(I, z))
 
 showcompact(io::IO, p::ZPoly) = showcompact(io, p.a)
-function show{T}(io::IO, p::ZPoly{T})
+function print{Z<:ZModN}(io::IO, p::ZPoly{Z})
+    print_no_mod(io, p)
+    print(io, " mod $(modulus(Z))")
+end
+
+function print_no_mod{I<:Integer}(io::IO, p::ZPoly{I})
     n = length(p)
-    if n == 0
-       print(io, "0")
+    if n <= 0
+        show_int(io, zero(I))
     else
-        for i in 1:n
-            if p[i] != zero(T)
-                if i == 1
-                    if p[i] < zero(T)
-                        print(io, "-")
-                    end
+        for j = 1:n
+            pj = p[j]
+            if pj != zero(I)
+                if j == 1 
+                    pj < 0 && print(io, "-")
                 else
-                    print(io, p[i] < zero(T) ? " - " : " + ")
+                    pj < 0 ? print(io," - ") : print(io," + ")
                 end
-                if p[i] != one(T) || i == n
-                    showcompact(io, abs(p[i]))
-                    if i != n
-                        print(io, " ")
+                magpj = abs(pj)
+                if j == n || magpj != one(I)
+                    show_int(io, magpj)
+                end
+                exp = n-j
+                if exp > 0
+                    print(io, :x)
+                    if exp > 1
+                        print(io, '^', exp)
                     end
-                end
-                if i == n - 1
-                    print(io, "x")
-                elseif i < n - 1
-                    print(io, "x^$(n-i)")
                 end
             end
         end
     end
-    print(io, " mod $(modulus(T))")
 end
+
+function show{I<:Integer}(io::IO, p::ZPoly{I})
+    print(io, "ZP($I")
+    for i in 1:length(p)
+        print(io, ",")
+        show_int(io, p[i])
+    end
+    print(io, ")")
+end
+
+# number methods
+
+zero{T}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
+one{T}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
 
 # TODO - these broken?
 =={T}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
@@ -369,65 +392,8 @@ end
 
 
 
-# a compact way of generating from an array and a type
-# (we can then use this in show to give a compact but accurate reprn)
-# (note that we always use x (the default) as the variable in Poly)
-P(c::Function, a::Vector) = Poly(map(c, a))
-P(c::Function, a...) = P(c, [a...])
-P{N,I<:Integer}(::Type{ZField{N,I}}, a::Vector{I}) = P(ZF(N), a)
-P{N,I<:Integer}(::Type{ZField{N,I}}, a::I...) = P(ZF(N), [a...])
-P{N,I<:Integer}(::Type{ZRing{N,I}}, a::Vector{I}) = P(ZR(N), a)
-P{N,I<:Integer}(::Type{ZRing{N,I}}, a::I...) = P(ZR(N), [a...])
-
 # the defaults repeat "mod n" all over the place
-#function print{Z<:ZModN}(io::IO, p::Poly{Z})
-#    print_no_mod(io, p)
-#    print(io, " mod $(modulus(Z))")
-#end
 
-#function print_no_mod{Z<:ZModN}(io::IO, p::Poly{Z})
-#    n = length(p)
-#    if n <= 0
-#        print(io,"0")
-#    else
-#        for j = 1:n
-#            pj = p[j]
-#            if pj != zero(Z)
-#                if j == 1 
-#                    pj < 0 && print(io, "-")
-#                else
-#                    pj < 0 ? print(io," - ") : print(io," + ")
-#                end
-#                magpj = abs(pj)
-#                if j == n || magpj != one(Z)
-#                    print(io, magpj.i)
-#                end
-#                exp = n-j
-#                if exp > 0
-#                    print(io, p.var)
-#                    if exp > 1
-#                        print(io, '^', exp)
-#                    end
-#                end
-#            end
-#        end
-#    end
-#end
-
-#function show{Z<:ZModN}(io::IO, p::Poly{Z})
-#    print(io, "P($Z")
-#    for i in 1:length(p)
-#        print(io, ",$(p[i].i)")
-#    end
-#    if p.var != :x
-#        print(io, ";var=:$(p.var)")
-#    end
-#    print(io, ")")
-#end
-
-# needed below to squeeze polynomial into type
-#poly_to_tuple{Z<:ZModN}(p::Poly{Z}) = tuple(map(a -> a.i, p.a)...)
-#tuple_to_poly{Z<:ZModN}(::Type{Z}, t::Tuple) = Poly([map(i -> duplicate(Z, i), t)...])
 
 
 
