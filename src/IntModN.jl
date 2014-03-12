@@ -27,7 +27,8 @@ import Base: show, showcompact, zero, one, inv, real, abs, convert,
 
 export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, 
        ZPoly, ZP, X, P, order, modulus, factor, itype,
-       FModN, FRing, FR
+       FModN, FRing, FR,
+       extended_euclidean
 
 
 # we generally support promotion into tyoes here (from integers) and
@@ -35,15 +36,25 @@ export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield,
 # conversion if required.
 
 
-# --- integers modulo n
-
-
-# Using Integer as the base type here as: (1) some numeric type seems
+# using Integer as the base type here as: (1) some numeric type seems
 # to be necessary to access many generic numerical functions; (2) need
 # Real to use comparisons; (3) have integer-like accuracy behaviour
 # (no need to worry about rounding etc).
 
-abstract ZModN{N, I<:Integer} <: Integer
+# but we need an additional type so that we can intercept things like
+# automatic promotion to floats from integers.
+
+abstract IntegerOnly <: Integer
+
+/{I<:Integer,M<:IntegerOnly}(i::I, m::M) = convert(M, i) / m
+/{I<:Integer,M<:IntegerOnly}(m::M, i::I) = m / convert(M, i)
+
+
+
+# --- integers modulo n
+
+
+abstract ZModN{N, I<:Integer} <: IntegerOnly
 
 # we need two types here because prime moduli have a faster inverse
 # (via euler's theorem) (note - we do NOT test for primality).
@@ -146,8 +157,8 @@ liftz(c, n, i, f, a, b) = c(convert(i, mod(f(a.i, b.i), n)))
 ^{N,I}(a::ZRing{N,I}, p::Int) = liftz(ZRing{N,I}, N, I, x -> powermod(x, p, N), a)
 ^{N,I}(a::ZField{N,I}, p::Int) = liftz(ZField{N,I}, N, I, x -> powermod(x, p, N), a)
 
-# http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Modular_integers
-function inverse{I<:Integer}(a::I, n::I)
+# http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#IntegerOnly_integers
+function extended_euclidean{I<:Integer}(a::I, n::I)
     t::I, newt::I = zero(I), one(I)
     r::I, newr::I = n, a
     while newr != zero(I)
@@ -159,7 +170,7 @@ function inverse{I<:Integer}(a::I, n::I)
     t < 0 ? t + n : t
 end
 
-inv{N,I}(a::ZRing{N,I}) = ZRing{N,I}(inverse(N, convert(I, N)))
+inv{N,I}(a::ZRing{N,I}) = ZRing{N,I}(extended_euclidean(N, convert(I, N)))
 inv{N,I}(a::ZField{N,I}) = a^(N-2)
 /{N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = a * inv(b)
 
@@ -195,9 +206,10 @@ end
 # less general (and faster and uses less memory - see PTests.jl).
 
 # IMPORTANT - arrays may be shared between polynomials, so don't mutate
-# contents unless you have a new instance.
+# contents unless you have a new instance whose contents you know to be
+# owned.
 
-immutable ZPoly{T<:Integer} <: Integer
+immutable ZPoly{T<:Integer} <: IntegerOnly
     a::Vector{T}
     ZPoly(a) = length(a) == 0 || a[1] > zero(T) ? new(a) : error("zero leading coeff")
 end
@@ -214,8 +226,8 @@ end
 
 ZP() = error("provide at least one (zero?) coeff")
 ZP(c::Function) = error("provide at least one (zero?) coeff")
-ZP(t::Type, coeffs::Vector) = ZP(map(c -> convert(t, c), coeffs))
-ZP(t::Type, coeffs...) = ZP([map(c -> convert(t, c), coeffs)...])
+ZP(t::Type, coeffs::Vector) = ZP(t[map(c -> convert(t, c), coeffs)...])
+ZP(t::Type, coeffs...) = ZP(t[map(c -> convert(t, c), coeffs)...])
 ZP(c::Function, coeffs::Vector) = ZP(map(c, coeffs))
 ZP(c::Function, coeffs...) = ZP([map(c, coeffs)...])
 ZP{I<:Integer}(coeffs::Vector{I}) = ZPoly{I}(prepare_p(coeffs))
@@ -416,7 +428,7 @@ degree{T}(a::ZPoly{T}) = length(a) - 1
 
 # this all assumes that the factor poynomial is irreducible
 
-abstract FModN{Z<:ZModN, F} <: Real
+abstract FModN{Z<:ZModN, F} <: IntegerOnly
 
 # assumes already reduced
 immutable FRing{Z<:ZModN, F<:Tuple} <: FModN{Z,F}

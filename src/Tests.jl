@@ -222,6 +222,14 @@ function test_p_arithmetic()
     r = p1 - p2
     @assert r == ex
 
+    x = X(ZF(5))
+    p1 =  x^5 + 3x^4 + 4x^3 + 2x^2      + 1 
+    p2 = inv(p1)
+    o = one(x)
+    @assert p1 * p2 == o
+    @assert inv(p2) == p1
+    @assert o / p2 == p1
+
     println("test_p_arithmetic ok")
 end
 
@@ -248,15 +256,31 @@ end
 function test_f_rijndael()
     x = X(GF2)
     rij = x^8 + x^4 + x^3 + x + 1
-    p = FR(x^7 + x^6 + x^3 + x, rij) * FR(x^6 + x^4 + x + 1, rij)
-    @assert p == FR(one(rij), rij)
+    a = FR(x^7 + x^6 + x^3 + x, rij)
+    b = FR(x^6 + x^4 + x + 1, rij)
+    o = one(a)
+    @assert a * b == o
+    @assert inv(a) == b
+    @assert o / b == a
 
     println("test_f_rijndael ok")
+end
+
+function test_f_inverse()
+    x = X(GF2)
+    rij = x^8 + x^4 + x^3 + x + 1
+    a = x^7 + x^6 + x^3 + x
+    b = x^6 + x^4 + x + 1
+    c = extended_euclidean(a, rij)
+    @assert b == c
+
+    println("test_f_inverse ok")
 end
 
 function tests_f()
     test_f_constructor()
     test_f_rijndael()
+    test_f_inverse()
 end
 
 
