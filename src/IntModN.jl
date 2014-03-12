@@ -192,7 +192,7 @@ end
 
 
 # started with Polynomial.jl, but that has various issues; this is
-# less general.
+# less general (and faster and uses less memory - see PTests.jl).
 
 # IMPORTANT - arrays may be shared between polynomials, so don't mutate
 # contents unless you have a new instance.
