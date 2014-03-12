@@ -345,18 +345,18 @@ end
 # big is modified; small is not - see liftp and +,- below
 # apply function, discarding zeros from start if shrink
 function apply{T}(f, big::Array{T,1}, small::Array{T,1})
-    d = length(big) - length(small)
-    @assert d >= 0
-    shrink = d == 0
+    shift = length(big) - length(small)
+    @assert shift >= 0
+    shrink = shift == 0
     for i in 1:length(small)
-        x = f(big[i+d], small[i])
+        x = f(big[i+shift], small[i])
         if x != zero(T) && shrink
-            big = big[i:end]  # d == 0
-            d = 1-i
+            big = big[i:end]  # shift == 0
+            shift = 1-i
             shrink = false
         end
         if !shrink
-            big[i+d] = x
+            big[i+shift] = x
         end
     end
     if shrink
