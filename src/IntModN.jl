@@ -380,7 +380,7 @@ function *{T}(a::ZPoly{T}, b::ZPoly{T})
     else
         result = zeros(T, length(big) + length(small) - 1)
         for i in 1:length(small)
-            z = small[i]  # enumerate above allocates new array!
+            z = small[i]  # enumerate here uses strange amount of memory
             if z != zero(T)
                 for j in 1:length(big)
                     result[i+j-1] += big[j] * z
