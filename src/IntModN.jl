@@ -424,8 +424,7 @@ immutable FRing{Z<:ZModN, F<:Tuple} <: FModN{Z,F}
 end
 
 function prepare_f{Z<:ZModN}(p::ZPoly{Z}, f::ZPoly{Z})
-    a, b = divrem(p, f)
-    b
+    p % f
 end
 
 FR{Z<:ZModN}(p::ZPoly{Z}, f::ZPoly{Z}) = FRing{Z, poly_to_tuple(f)}(prepare_f(p, f))
