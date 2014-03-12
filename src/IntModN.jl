@@ -383,8 +383,7 @@ function *{T}(a::ZPoly{T}, b::ZPoly{T})
             z = small[i]  # enumerate above allocates new array!
             if z != zero(T)
                 for j in 1:length(big)
-                    w = big[j]
-                    result[i+j-1] += w * z
+                    result[i+j-1] += big[j] * z
                 end
             end
         end
