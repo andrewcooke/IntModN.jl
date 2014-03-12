@@ -30,8 +30,7 @@ function test_z_constructor()
         @assert search(string(e), "too large") != 0:-1 
     end
 
-#    z = ZF(5,3)
-#    @assert z == IntModN.duplicate(typeof(z), 8)
+    @assert one(ZField{2,Int}) == one(GF2(0)) == GF2(1)
 
     println("test_z_constructor ok")
 end
@@ -222,14 +221,6 @@ function test_p_arithmetic()
     r = p1 - p2
     @assert r == ex
 
-    x = X(ZF(5))
-    p1 =  x^5 + 3x^4 + 4x^3 + 2x^2      + 1 
-    p2 = inv(p1)
-    o = one(x)
-    @assert p1 * p2 == o
-    @assert inv(p2) == p1
-    @assert o / p2 == p1
-
     println("test_p_arithmetic ok")
 end
 
@@ -262,6 +253,7 @@ function test_f_rijndael()
     @assert a * b == o
     @assert inv(a) == b
     @assert o / b == a
+    @assert o / a == b
 
     println("test_f_rijndael ok")
 end

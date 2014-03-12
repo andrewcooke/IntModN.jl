@@ -48,7 +48,7 @@ abstract IntegerOnly <: Integer
 
 /{I<:Integer,M<:IntegerOnly}(i::I, m::M) = convert(M, i) / m
 /{I<:Integer,M<:IntegerOnly}(m::M, i::I) = m / convert(M, i)
-
+inv{M<:IntegerOnly}(m::M) = error("no inverse defined")
 
 
 # --- integers modulo n
@@ -118,6 +118,8 @@ zero{N,I}(::Type{ZRing{N,I}}) = ZRing{N,I}(zero(I))
 one{N,I}(::Type{ZRing{N,I}}) = ZRing{N,I}(one(I))
 zero{N,I}(::Type{ZField{N,I}}) = ZField{N,I}(zero(I))
 one{N,I}(::Type{ZField{N,I}}) = ZField{N,I}(one(I))
+zero{Z<:ZModN}(z::Z) = zero(Z)
+one{Z<:ZModN}(z::Z) = one(Z)
 
 showcompact{N,I}(io::IO, z::ZModN{N,I}) = showcompact(io, z.i)
 print{N,I}(io::IO, z::ZModN{N,I}) = print(io, "$(z.i) mod $N")
@@ -316,6 +318,8 @@ showcompact(io::IO, p::ZPoly) = showcompact(io, p.a)
 
 zero{T}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
 one{T}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
+zero{Z<:ZPoly}(z::Z) = zero(Z)
+one{Z<:ZPoly}(z::Z) = one(Z)
 
 =={T}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
 function cmp{T}(a::ZPoly{T}, b::ZPoly{T}, eq)
@@ -449,8 +453,10 @@ modulus{F<:FModN}(::F) = modulus(F)
 order{F<:FModN}(::Type{F}) = modulus(F) ^ degree(factor(F)) - 1
 order{F<:FModN}(::F) = order(F)
 
-zero{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FRing(Poly(zero(Z)), tuple_to_poly(Z, F))
-one{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FRing(Poly(one(Z)), tuple_to_poly(Z, F))
+zero{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FR(ZP(zero(Z)), tuple_to_poly(Z, F))
+one{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FR(ZP(one(Z)), tuple_to_poly(Z, F))
+zero{F<:FModN}(f::F) = zero(F)
+one{F<:FModN}(f::F) = one(F)
 
 function show(io::IO, r::FRing)
     print(io, "FR(")
@@ -474,6 +480,9 @@ liftf{F<:FRing}(f, a::F, b::F) = FR(f(a.p, b.p), factor(F))
 +{F<:FRing}(a::F, b::F) = liftf(+, a, b)
 -{F<:FRing}(a::F, b::F) = liftf(-, a, b)
 *{F<:FRing}(a::F, b::F) = liftf(*, a, b)
+
+inv{F<:FRing}(f::F) = FR(extended_euclidean(f.p, factor(f)), factor(f))
+/{F<:FRing}(a::F, b::F) = a * inv(b)
 
 
 
