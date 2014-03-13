@@ -148,16 +148,13 @@ abs{N,I}(a::ZModN{N,I}) = a
 
 liftz(c, n, i, f, a) = c(convert(i, mod(f(a.i), n)))
 liftz(c, n, i, f, a, b) = c(convert(i, mod(f(a.i, b.i), n)))
--{N,I}(a::ZRing{N,I}) = liftz(ZRing{N,I}, N, I, -, a)
--{N,I}(a::ZField{N,I}) = liftz(ZField{N,I}, N, I, -, a)
-+{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = liftz(ZRing{N,I}, N, I, +, a, b)
-+{N,I}(a::ZField{N,I}, b::ZField{N,I}) = liftz(ZField{N,I}, N, I, +, a, b)
--{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = liftz(ZRing{N,I}, N, I, -, a, b)
--{N,I}(a::ZField{N,I}, b::ZField{N,I}) = liftz(ZField{N,I}, N, I, -, a, b)
-*{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = liftz(ZRing{N,I}, N, I, *, a, b)
-*{N,I}(a::ZField{N,I}, b::ZField{N,I}) = liftz(ZField{N,I}, N, I, *, a, b)
-^{N,I}(a::ZRing{N,I}, p::Int) = liftz(ZRing{N,I}, N, I, x -> powermod(x, p, N), a)
-^{N,I}(a::ZField{N,I}, p::Int) = liftz(ZField{N,I}, N, I, x -> powermod(x, p, N), a)
+for Z in (ZRing, ZField)    
+    @eval -{N,I}(a::$Z{N,I}) = liftz($Z{N,I}, N, I, -, a)
+    @eval ^{N,I}(a::$Z{N,I}, p::Int) = liftz($Z{N,I}, N, I, x -> powermod(x, p, N), a)
+    for op in (:+, :-, :*, :&, :|, :$)
+        @eval $op{N,I}(a::$Z{N,I}, b::$Z{N,I}) = liftz($Z{N,I}, N, I, $op, a, b)
+    end
+end
 
 # http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#IntegerOnly_integers
 function extended_euclidean{I<:Integer}(a::I, n::I)
@@ -175,13 +172,6 @@ end
 inv{N,I}(a::ZRing{N,I}) = ZRing{N,I}(extended_euclidean(N, convert(I, N)))
 inv{N,I}(a::ZField{N,I}) = a^(N-2)
 /{N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = a * inv(b)
-
-Base.&{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = liftz(ZRing{N,I}, N, I, &, a, b)
-Base.|{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = liftz(ZRing{N,I}, N, I, |, a, b)
-Base.(:($)){N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = liftz(ZRing{N,I}, N, I, $, a, b)
-Base.&{N,I}(a::ZField{N,I}, b::ZField{N,I}) = liftz(ZField{N,I}, N, I, &, a, b)
-Base.|{N,I}(a::ZField{N,I}, b::ZField{N,I}) = liftz(ZField{N,I}, N, I, |, a, b)
-Base.(:($)){N,I}(a::ZField{N,I}, b::ZField{N,I}) = liftz(ZField{N,I}, N, I, $, a, b)
 
 # macros to rewrite literals mod n 
 # (these rewrite ALL ints, including args to literal ZF(...), etc)
