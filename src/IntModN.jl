@@ -176,6 +176,12 @@ inv{N,I}(a::ZRing{N,I}) = ZRing{N,I}(extended_euclidean(N, convert(I, N)))
 inv{N,I}(a::ZField{N,I}) = a^(N-2)
 /{N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = a * inv(b)
 
+Base.&{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = liftz(ZRing{N,I}, N, I, &, a, b)
+Base.|{N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = liftz(ZRing{N,I}, N, I, |, a, b)
+Base.(:($)){N,I}(a::ZRing{N,I}, b::ZRing{N,I}) = liftz(ZRing{N,I}, N, I, $, a, b)
+Base.&{N,I}(a::ZField{N,I}, b::ZField{N,I}) = liftz(ZField{N,I}, N, I, &, a, b)
+Base.|{N,I}(a::ZField{N,I}, b::ZField{N,I}) = liftz(ZField{N,I}, N, I, |, a, b)
+Base.(:($)){N,I}(a::ZField{N,I}, b::ZField{N,I}) = liftz(ZField{N,I}, N, I, $, a, b)
 
 # macros to rewrite literals mod n 
 # (these rewrite ALL ints, including args to literal ZF(...), etc)
@@ -430,13 +436,13 @@ degree{T}(a::ZPoly{T}) = length(a) - 1
 function same_length{T}(a::Vector{T}, b::Vector{T})
     big, small = length(a) > length(b) ? (a, b) : (b, a)
     shift = length(big) - length(small)
-    small = append(zeroes(Z, shift), small)
+    small = vcat(zeros(T, shift), small)
     big, small
 end
 map{P<:ZPoly}(f::Function, a::P, b::P) = ZP(map(f, same_length(a.a, b.a)...))
 Base.&{P<:ZPoly}(a::P, b::P) = map(&, a, b)
 Base.|{P<:ZPoly}(a::P, b::P) = map(|, a, b)
-Base.${P<:ZPoly}(a::P, b::P) = map($, a, b)
+Base.(:($)){P<:ZPoly}(a::P, b::P) = map($, a, b)
 
 
 # --- GF(2) polynomials encoded as bits
@@ -485,6 +491,8 @@ function convert{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, z::ZPoly{ZField{2,
     end
     
 end
+
+
 
 degree{U<:Unsigned}(p::GF2Poly{U}) = 8*sizeof(U) - leading_zeros(p)
 

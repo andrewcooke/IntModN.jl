@@ -224,11 +224,21 @@ function test_p_arithmetic()
     println("test_p_arithmetic ok")
 end
 
+function test_p_bitwise()
+    @assert ZP(3, 2, 1) & ZP(1, 1, 1) == ZP(1, 0, 1)
+    @assert ZP(3, 2, 1) | ZP(1, 1) == ZP(3, 3, 1)
+
+    @assert ZP(GF2(0), GF2(0)) $ ZP(GF2(1)) == ZP(GF2(0), GF2(1))    
+
+    println("test_p_bitwise")
+end
+
 function tests_p()
     test_p_constructor()
     test_p_show()
     test_p_comparison()
     test_p_arithmetic()
+    test_p_bitwise()
 end
 
 
