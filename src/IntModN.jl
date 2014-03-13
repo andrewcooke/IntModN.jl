@@ -18,7 +18,7 @@ module IntModN
 
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule, length, getindex, setindex!, start, done, next,
-       rand, rand!, print
+       rand, rand!, print, map
 
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
@@ -201,7 +201,7 @@ end
 
 
 
-# --- "integer" coeff polynomials
+# --- arbitrary (but "integer") coeff polynomials
 
 
 # started with Polynomial.jl, but that has various issues; this is
@@ -211,9 +211,9 @@ end
 # contents unless you have a new instance whose contents you know to be
 # owned.
 
-immutable ZPoly{T<:Integer} <: IntegerOnly
-    a::Vector{T}
-    ZPoly(a) = length(a) == 0 || a[1] > zero(T) ? new(a) : error("zero leading coeff")
+immutable ZPoly{I<:Integer} <: IntegerOnly
+    a::Vector{I}
+    ZPoly(a) = length(a) == 0 || a[1] > zero(I) ? new(a) : error("zero leading coeff")
 end
 
 # constructors
@@ -259,7 +259,7 @@ getindex(a::ZPoly, i) = getindex(a.a, i)
 setindex!{T}(a::ZPoly{T}, v::T, i) = setindex!(a.a, v, i)
 length(a::ZPoly) = length(a.a)
 endof(a::ZPoly) = length(a)
-start(a::ZPoly) = 1
+start(::ZPoly) = 1
 done(a::ZPoly, i) = i > length(a)
 next(a::ZPoly, i) = (a[i], i+1)
 
@@ -423,6 +423,70 @@ end
 %{T}(a::ZPoly{T}, b::ZPoly{T}) = ZP(_divrem(a.a, b.a)[2])
 # ^ will come from power_by_squaring in stdlib
 degree{T}(a::ZPoly{T}) = length(a) - 1
+
+# defining bitwise ops seems odd, but makes sense for GF2, especially
+# when using the compact binary repn below.  for N>2 we apply the
+# operation to each coefficient pair in turn.
+function same_length{T}(a::Vector{T}, b::Vector{T})
+    big, small = length(a) > length(b) ? (a, b) : (b, a)
+    shift = length(big) - length(small)
+    small = append(zeroes(Z, shift), small)
+    big, small
+end
+map{P<:ZPoly}(f::Function, a::P, b::P) = ZP(map(f, same_length(a.a, b.a)...))
+Base.&{P<:ZPoly}(a::P, b::P) = map(&, a, b)
+Base.|{P<:ZPoly}(a::P, b::P) = map(|, a, b)
+Base.${P<:ZPoly}(a::P, b::P) = map($, a, b)
+
+
+# --- GF(2) polynomials encoded as bits
+
+
+type GF2Poly{I<:Unsigned}
+    i::I
+end
+
+# constructors
+GF2P{U<:Unsigned}(p::U) = GF2Poly{U}(p)
+GF2P{S<:Signed}(p::S) = GF2P(unsigned(p))
+GF2X{U<:Unsigned}(::Type{U}) = GF2Poly{U}(one(U))
+
+modulus(::Type{GF2Poly}) = 2
+modulus(::GF2Poly) = 2
+
+convert{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, i::I) = GF2P(convert(U, i % 2))
+promote_rule{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{I}) = GF2Poly{U}
+
+# TODO - getindex etc?
+
+# for display we first convert to to ZPoly.  this is not efficient,
+# but we probably need theinterop anyway, and who cares if printing is
+# efficient?
+
+function convert{I<:Integer, U<:Unsigned}(::Type{ZPoly{ZField{2,I}}}, p::GF2Poly{U})
+    result = zero(ZField{2,I})
+    mask = one(ZField{2,I})
+    x = X(ZField{2,I})
+    while p != 0
+        if p & 1 != 0
+            result += mask
+        end
+        mask *= x
+    end
+    result
+end
+
+function convert{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, z::ZPoly{ZField{2,I}})
+    result = zero(GF2Poly{U})
+    mask = one(GF2Poly{U})
+    x = X(GF2Poly{U})
+    while z != zero(Poly{ZField{2,I}})
+       
+    end
+    
+end
+
+degree{U<:Unsigned}(p::GF2Poly{U}) = 8*sizeof(U) - leading_zeros(p)
 
 
 
