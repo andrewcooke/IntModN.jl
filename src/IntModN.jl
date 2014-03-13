@@ -27,6 +27,7 @@ import Base: show, showcompact, zero, one, inv, real, abs, convert,
 
 export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, 
        ZPoly, ZP, X, P, order, modulus, factor, itype,
+       GF2Poly, GF2P, GF2X,
        FModN, FRing, FR,
        extended_euclidean
 
@@ -71,7 +72,7 @@ immutable ZField{N, I<:Integer} <: ZModN{N,I}
     i::I
 end
 
-# but typically you would use one of these constructors
+# but typically you would use one of these constructors (ZF or ZR)
 
 function prepare_z{I<:Integer}(n::Int, i::I)
     @assert n > 0 "modulus ($n) too small"
@@ -79,13 +80,11 @@ function prepare_z{I<:Integer}(n::Int, i::I)
     mod(i, n)
 end
 
-ZR{I<:Integer}(n::Int, i, ::Type{I}) = ZRing{n,I}(prepare_z(n, convert(I, i)))
-ZR(n, i::Integer) = ZRing{n, typeof(i)}(prepare_z(n, i))
-ZR(n) = i::Integer -> ZR(n, i)  # used to construct constructors
-ZF{I<:Integer}(n::Int, i, ::Type{I}) = ZField{n,I}(prepare_z(n, convert(I, i)))
-ZF(n, i::Integer) = ZField{n, typeof(i)}(prepare_z(n, i))
-ZF(n) = i::Integer -> ZF(n, i)  # used to construct constructors
-
+for (f, Z) in ((:ZR, :ZRing), (:ZF, :ZField))
+    @eval $f{I<:Integer}(n::Int, i, ::Type{I}) = $Z{n,I}(prepare_z(n, convert(I, i)))
+    @eval $f(n, i::Integer) = $Z{n, typeof(i)}(prepare_z(n, i))
+    @eval $f(n) = i::Integer -> $f(n, i)  # used to construct constructors
+end
 GF2 = ZF(2)
 
 modulus{N, I<:Integer}(::Type{ZModN{N, I}}) = N
@@ -96,28 +95,25 @@ order{T<:ZModN}(::T) = modulus(T)
 itype{N, I<:Integer}(::Type{ZModN{N, I}}) = I
 itype{T<:ZModN}(::Type{T}) = itype(super(T))  # jameson type chain
 itype{T<:ZModN}(::T) = itype(T)
-# this looks like a convert?  what is it for?
-#duplicate{Z<:ZModN}(::Type{Z}, i::Integer) = Z(prepare_z(modulus(Z), convert(itype(Z), i)))
 
-# julia's comversion is pretty damn dumb at times
-convert{N,I<:Integer}(::Type{ZRing{N,I}}, a::ZRing{N,I}) = a
-convert{N,I<:Integer}(::Type{ZField{N,I}}, a::ZField{N,I}) = a
-# this promotion needed because linalg code has direct compariosn with 0
-promote_rule{N, I<:Integer}(::Type{ZField{N,I}}, ::Type{Int}) = ZField{N,I}
-promote_rule{N, I<:Integer}(::Type{ZRing{N,I}}, ::Type{Int}) = ZRing{N,I}
-convert{N,I<:Integer}(::Type{ZRing{N,I}}, i::Integer) = ZR(N, convert(I, i))
-convert{N,I<:Integer}(::Type{ZField{N,I}}, i::Integer) = ZF(N, convert(I, i))
+for (f, Z) in ((:ZR, :ZRing), (:ZF, ZField))
+    # julia's comversion is pretty damn dumb at times
+    @eval convert{N,I<:Integer}(::Type{$Z{N,I}}, a::$Z{N,I}) = a
+    # this promotion needed because linalg code has direct compariosn with 0
+    @eval promote_rule{N, I<:Integer}(::Type{$Z{N,I}}, ::Type{Int}) = $Z{N,I}
+    @eval convert{N,I<:Integer}(::Type{$Z{N,I}}, i::Integer) = $f(N, convert(I, i))
+end
 # conversion to int, but no promotion
-for T in (Int, Uint)
+for T in (:Int, :Uint)
     @eval convert(::Type{$T}, z::ZModN) = convert($T, z.i)
 end
 
 # all the methods that make these numbers
 
-zero{N,I}(::Type{ZRing{N,I}}) = ZRing{N,I}(zero(I))
-one{N,I}(::Type{ZRing{N,I}}) = ZRing{N,I}(one(I))
-zero{N,I}(::Type{ZField{N,I}}) = ZField{N,I}(zero(I))
-one{N,I}(::Type{ZField{N,I}}) = ZField{N,I}(one(I))
+for Z in (:ZRing, :ZField)
+    @eval zero{N,I}(::Type{$Z{N,I}}) = $Z{N,I}(zero(I))
+    @eval one{N,I}(::Type{$Z{N,I}}) = $Z{N,I}(one(I))
+end
 zero{Z<:ZModN}(z::Z) = zero(Z)
 one{Z<:ZModN}(z::Z) = one(Z)
 
@@ -259,7 +255,6 @@ start(::ZPoly) = 1
 done(a::ZPoly, i) = i > length(a)
 next(a::ZPoly, i) = (a[i], i+1)
 
-show_int{N,I<:Unsigned}(io::IO, z::ZModN{N,I}) = show(io, convert(I, z))
 show_int{N,I<:Integer}(io::IO, z::ZModN{N,I}) = show(io, convert(I, z))
 show_int{I<:Integer}(io::IO, i::I) = show(io, convert(I, i))
 print_mode{Z<:ZModN}(io::IO, p::ZPoly{Z}) = print(io, " mod $(modulus(Z))")
@@ -423,22 +418,27 @@ degree{T}(a::ZPoly{T}) = length(a) - 1
 # defining bitwise ops seems odd, but makes sense for GF2, especially
 # when using the compact binary repn below.  for N>2 we apply the
 # operation to each coefficient pair in turn.
+
 function same_length{T}(a::Vector{T}, b::Vector{T})
     big, small = length(a) > length(b) ? (a, b) : (b, a)
     shift = length(big) - length(small)
     small = vcat(zeros(T, shift), small)
     big, small
 end
+
 map{P<:ZPoly}(f::Function, a::P, b::P) = ZP(map(f, same_length(a.a, b.a)...))
-Base.&{P<:ZPoly}(a::P, b::P) = map(&, a, b)
-Base.|{P<:ZPoly}(a::P, b::P) = map(|, a, b)
-Base.(:($)){P<:ZPoly}(a::P, b::P) = map($, a, b)
+for op in (:&, :|, :$)
+    @eval $op{P<:ZPoly}(a::P, b::P) = map($op, a, b)
+end
+<<{T}(a::ZPoly{T}, n::Int) = a * X(T)^n
+>>>{T}(a::ZPoly{T}, n::Int) = a / X(T)^n
+
 
 
 # --- GF(2) polynomials encoded as bits
 
 
-type GF2Poly{I<:Unsigned}
+type GF2Poly{I<:Unsigned} <: IntegerOnly
     i::I
 end
 
@@ -459,30 +459,27 @@ promote_rule{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{I}) = GF2Poly{U
 # but we probably need theinterop anyway, and who cares if printing is
 # efficient?
 
-function convert{I<:Integer, U<:Unsigned}(::Type{ZPoly{ZField{2,I}}}, p::GF2Poly{U})
-    result = zero(ZField{2,I})
-    mask = one(ZField{2,I})
-    x = X(ZField{2,I})
-    while p != 0
-        if p & 1 != 0
-            result += mask
+convert{I<:Integer, U<:Unsigned}(::Type{ZPoly{ZField{2,I}}}, p::GF2Poly{U}) = _convert(ZPoly{ZField{2,I}}, p)
+convert{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, p::ZPoly{ZField{2,I}}) = _convert(GF2Poly{U}, p)
+
+function _convert{T, F}(::Type{T}, from::F)
+    result, mask, x = zero(T), one(T), one(T) << 1
+    none = zero(F)
+    while from != none
+        if from & 1 != none
+            result |= mask
         end
-        mask *= x
+        mask <<= 1
+        from >>>= 1
     end
     result
 end
 
-function convert{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, z::ZPoly{ZField{2,I}})
-    result = zero(GF2Poly{U})
-    mask = one(GF2Poly{U})
-    x = X(GF2Poly{U})
-    while z != zero(Poly{ZField{2,I}})
-       
-    end
-    
+for (name, op) in ((:+, $), (:-, $), (:|, |), (:&, &))
+    @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = GF2Poly($op(a.i, b.i))
 end
-
-
+<<{U<:Unsigned}(a::GF2Poly{U}, n::Int) = GF2Poly(a.i << n)
+>>>{U<:Unsigned}(a::GF2Poly{U}, n::Int) = GF2Poly(a.i >>> n)
 
 degree{U<:Unsigned}(p::GF2Poly{U}) = 8*sizeof(U) - leading_zeros(p)
 
@@ -548,6 +545,9 @@ inv{F<:FRing}(f::F) = FR(extended_euclidean(f.p, factor(f)), factor(f))
 
 
 # --- pull in tests (does this need ot be so ugly?)
+
+
+# TODO - try include (relative path) here
 
 d = Pkg.dir("IntModN")
 d = "$d/src"
