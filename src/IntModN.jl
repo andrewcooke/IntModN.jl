@@ -466,6 +466,8 @@ function _convert{T, F}(::Type{T}, from::F)
     result, mask, x = zero(T), one(T), one(T) << 1
     none = zero(F)
     while from != none
+        println("from ", from)
+        println("mask ", mask)
         if from & 1 != none
             result |= mask
         end
