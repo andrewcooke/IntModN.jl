@@ -162,8 +162,8 @@ function test_p_constructor()
     @assert ZP(ZField{2,Int}, [1, 1, 0]) == x^2 + x
 
     p = x^2 + x
-    @assert IntModN.poly_to_tuple(p) == (1, 1, 0)
-    @assert IntModN.tuple_to_poly(ZField{2,Int}, (1, 1, 0)) == p
+    @assert IntModN.encode_factor(p) == (1, 1, 0)
+    @assert IntModN.decode_factor(ZPoly{ZField{2,Int}}, (1, 1, 0)) == p
 
     println("test_p_constructor ok")
 end
@@ -243,6 +243,90 @@ function tests_p()
 end
 
 
+# --- fast polynomials in GF2
+
+
+function test_p2_constructor()
+
+    x = GF2X(Uint8)
+    @assert GF2P(0xa) == x^3 + x
+
+    p = x^2 + x
+    @assert IntModN.encode_factor(p) == tuple(6)
+    @assert IntModN.decode_factor(GF2Poly{Uint8}, tuple(6)) == p
+
+    println("test_p2_constructor ok")
+end
+
+function test_p2_show()
+
+    x = GF2X(Uint)
+    @assert string(3x^2 + 1) == "x^2 + 1 mod 2"
+    @assert sprint(show, 3x^2 + 1) == "GF2Poly{Uint64}(5)"
+
+    println("test_p2_show ok")
+end
+
+function test_p2_comparison()
+
+    x = GF2X(Uint)
+    @assert x + 1 == x + 1
+    @assert x^2 + 1 != x + 1
+
+    for i in 1:10
+        a = GF2P(rand(Uint8))
+        b = GF2P(rand(Uint8))
+        @assert a == b || ((a < b) $ (b < a))
+        if a < b || a == b
+            @assert a <= b
+        end
+        if a > b || a == b
+            @assert a >= b
+        end
+        if a == b
+            @assert !(a != b)
+        else
+            @assert a != b
+        end
+    end
+
+    println("test_p2_comparison ok")
+end
+
+function test_p2_arithmetic()
+
+    x = GF2X(Uint8)
+    a = x^3 + x^2 + 1
+    b = x^2 + 1
+    p, q = divrem(a, b)
+    @assert string(p * b + q) == "x^3 + x^2 + 1 mod 2"
+
+    p1 = x^5 + x^4 + x^3 + x^2     + 1 
+    p2 = x^5       + x^3 + x^2 + x
+    ex =       x^4             + x + 1
+    r = p1 - p2
+    @assert r == ex
+
+    println("test_p2_arithmetic ok")
+end
+
+function test_p2_bitwise()
+    @assert GF2P(0x5) & GF2P(0x7) == GF2P(0x5)
+    @assert GF2P(0x5) | GF2P(0x3) == GF2P(0x7)
+    @assert GF2P(0x0) $ GF2P(0x1) == GF2P(0x1)
+
+    println("test_p2_bitwise")
+end
+
+function tests_p2()
+    test_p2_constructor()
+    test_p2_show()
+    test_p2_comparison()
+    test_p2_arithmetic()
+    test_p2_bitwise()
+end
+
+
 # --- factor rings of polynomials
 
 
@@ -291,6 +375,7 @@ end
 function tests()
     tests_z()
     tests_p()
+    tests_p2()
     tests_f()
 end
 

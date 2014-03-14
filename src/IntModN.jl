@@ -20,7 +20,7 @@ module IntModN
 
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule, length, getindex, setindex!, start, done, next,
-       rand, rand!, print, map
+       rand, rand!, print, map, leading_zeros
 
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
@@ -195,6 +195,11 @@ end
 
 
 
+# --- supertype for all polynomial representations
+
+abstract PModN <: IntegerOnly
+
+
 # --- arbitrary (but "integer") coeff polynomials
 
 
@@ -205,7 +210,7 @@ end
 # contents unless you have a new instance whose contents you know to be
 # owned.
 
-immutable ZPoly{I<:Integer} <: IntegerOnly
+immutable ZPoly{I<:Integer} <: PModN
     a::Vector{I}
     ZPoly(a) = length(a) == 0 || a[1] > zero(I) ? new(a) : error("zero leading coeff")
 end
@@ -232,8 +237,8 @@ ZP{I<:Integer}(coeffs::I...) = ZP([coeffs...])
 # needed below to squeeze polynomial into type
 # not via convert as we don't know type (length of tuple).  
 # TODO - this may cause efficiency issues (since return type varies)?
-poly_to_tuple{I<:Integer}(p::ZPoly{I}) = tuple(map(a -> convert(Int, a), p.a)...)
-tuple_to_poly{I<:Integer}(::Type{I}, t::Tuple) = ZPoly{I}([map(i -> convert(I, i), t)...])
+encode_factor{I<:Integer}(p::ZPoly{I}) = tuple(map(a -> convert(Int, a), p.a)...)
+decode_factor{I<:Integer}(::Type{ZPoly{I}}, t::Tuple) = ZPoly{I}([map(i -> convert(I, i), t)...])
 
 # nice syntax for creating polynomials.
 # use x=X(ZF(2)) or x=X(GF2) or x=X(ZField{2,Int}) and then x^2+3 etc
@@ -441,20 +446,25 @@ end
 # --- GF(2) polynomials encoded as bits
 
 
-type GF2Poly{I<:Unsigned} <: IntegerOnly
+type GF2Poly{I<:Unsigned} <: PModN
     i::I
 end
 
 # constructors
 GF2P{U<:Unsigned}(p::U) = GF2Poly{U}(p)
 GF2P{S<:Signed}(p::S) = GF2P(unsigned(p))
-GF2X{U<:Unsigned}(::Type{U}) = GF2Poly{U}(one(U))
+GF2X{U<:Unsigned}(::Type{U}) = GF2Poly{U}(one(U) + one(U))
+GF2X() = GF2X(Uint)
+
+encode_factor{U<:Unsigned}(p::GF2Poly{U}) = tuple(convert(Int, p.i))
+decode_factor{U<:Unsigned}(::Type{GF2Poly{U}}, t::Tuple) = GF2Poly{U}(convert(U, t[1]))
 
 modulus(::Type{GF2Poly}) = 2
 modulus(::GF2Poly) = 2
 
 convert{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, i::I) = GF2P(convert(U, i % 2))
-promote_rule{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{I}) = GF2Poly{U}
+promote_rule{I<:Unsigned, U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{I}) = GF2Poly{U}
+promote_rule{U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{Int}) = GF2Poly{U}
 
 # TODO - getindex etc?
 
@@ -464,13 +474,12 @@ promote_rule{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{I}) = GF2Poly{U
 
 convert{I<:Integer, U<:Unsigned}(::Type{ZPoly{ZField{2,I}}}, p::GF2Poly{U}) = _convert(ZPoly{ZField{2,I}}, p)
 convert{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, p::ZPoly{ZField{2,I}}) = _convert(GF2Poly{U}, p)
+convert{U<:Unsigned}(::Type{GF2Poly{U}}, p::GF2Poly{U}) = p
 
 function _convert{T, F}(::Type{T}, from::F)
     result, mask, x = zero(T), one(T), one(T) << 1
     none = zero(F)
     while from != none
-        println("from ", from)
-        println("mask ", mask)
         if from & 1 != none
             result |= mask
         end
@@ -480,16 +489,25 @@ function _convert{T, F}(::Type{T}, from::F)
     result
 end
 
+print{U<:Unsigned}(io::IO, p::GF2Poly{U}) = print(io, convert(ZPoly{ZField{2,Int}}, p))
+show{U<:Unsigned}(io::IO, p::GF2Poly{U}) = print(io, "GF2Poly{$U}($(p.i))")
+
 zero{U<:Unsigned}(::Type{GF2Poly{U}}) = GF2P(zero(U))
 zero{U<:Unsigned}(::GF2Poly{U}) = GF2P(zero(U))
 one{U<:Unsigned}(::Type{GF2Poly{U}}) = GF2P(one(U))
 one{U<:Unsigned}(::GF2Poly{U}) = GF2P(one(U))
 
-for (name, op) in ((:(==), ==), (:<=, <=), (:<, <), (:+, $), (:-, $), (:|, |), (:&, &), (:$, $))
-    @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = GF2Poly($op(a.i, b.i))
+
+-{U<:Unsigned}(a::GF2Poly{U}) = a
+for (name, op) in ((:+, $), (:-, $), (:|, |), (:&, &), (:$, $))
+    @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = GF2P($op(a.i, b.i))
+end
+for (name, op) in ((:(==), ==), (:<=, <=), (:<, <))
+    @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = $op(a.i, b.i)
 end
 <<{U<:Unsigned}(a::GF2Poly{U}, n::Int) = GF2Poly(a.i << n)
 >>>{U<:Unsigned}(a::GF2Poly{U}, n::Int) = GF2Poly(a.i >>> n)
+leading_zeros{U<:Unsigned}(a::GF2Poly{U}) = leading_zeros(a.i)
 
 function *{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
     big, small = a > b ? (a, b) : (b, a)
@@ -523,24 +541,24 @@ function divrem{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
     else 
         shift = leading_zeros(b) - leading_zeros(a)  # non-negative
         rem, div = a, zero(GF2Poly{U})
-        b = b << shift
-        factor = one(GF2Poly{U}) << shift  # no overflow
-        mask = one(GF2Poly{U}) << (8 * sizeof(U) - leading_zeros(a) - 1)
+        factor = one(GF2Poly{U}) << shift
+        b = b << shift  # no overflow (b *= factor)
+        mask = one(GF2Poly{U}) << (8 * sizeof(U) - leading_zeros(rem) - 1)  # msb(rem)
         for s in shift:-1:0
-            if rem & mask
+            if rem & mask != zero(GF2Poly{U})
                 div += factor
                 rem -= b
             end
-            factor >>= 1
-            b >>= 1
-            mask >>= 1
+            factor >>>= 1
+            b >>>= 1
+            mask >>>= 1
         end
         div, rem
     end
 end
 
-/{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = _divrem(a, b)[1]
-%{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = _divrem(a, b)[2]
+/{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = divrem(a, b)[1]
+%{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = divrem(a, b)[2]
 
 degree{U<:Unsigned}(p::GF2Poly{U}) = 8*sizeof(U) - leading_zeros(p)
 
@@ -551,29 +569,29 @@ degree{U<:Unsigned}(p::GF2Poly{U}) = 8*sizeof(U) - leading_zeros(p)
 
 # this all assumes that the factor poynomial is irreducible
 
-abstract FModN{Z<:ZModN, F} <: IntegerOnly
+abstract FModN{P<:PModN, F} <: IntegerOnly
 
 # assumes already reduced
-immutable FRing{Z<:ZModN, F<:Tuple} <: FModN{Z,F}
-    p::ZPoly{Z}
+immutable FRing{P<:PModN, F} <: FModN{P,F}
+    p::P
 end
 
-function prepare_f{Z<:ZModN}(p::ZPoly{Z}, f::ZPoly{Z})
+function prepare_f{P<:PModN}(p::P, f::P)
     p % f
 end
 
-FR{Z<:ZModN}(p::ZPoly{Z}, f::ZPoly{Z}) = FRing{Z, poly_to_tuple(f)}(prepare_f(p, f))
+FR{P<:PModN}(p::P, f::P) = FRing{P, encode_factor(f)}(prepare_f(p, f))
 
-factor{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = tuple_to_poly(Z, F)
-factor{Z<:ZModN, F<:Tuple}(::FRing{Z, F}) = factor(FRing{Z, F})
-modulus{Z<:ZModN, F}(::Type{FModN{Z,F}}) = modulus(Z)
+factor{P<:PModN, F}(::Type{FRing{P, F}}) = decode_factor(P, F)
+factor{P<:PModN, F}(::FRing{P, F}) = factor(FRing{P, F})
+modulus{P<:PModN, F}(::Type{FModN{P,F}}) = modulus(P)
 modulus{F<:FModN}(::F) = modulus(F)
 # assuming irreducible factor
 order{F<:FModN}(::Type{F}) = modulus(F) ^ degree(factor(F)) - 1
 order{F<:FModN}(::F) = order(F)
 
-zero{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FR(ZP(zero(Z)), tuple_to_poly(Z, F))
-one{Z<:ZModN, F<:Tuple}(::Type{FRing{Z, F}}) = FR(ZP(one(Z)), tuple_to_poly(Z, F))
+zero{P<:PModN, F}(::Type{FRing{P, F}}) = FR(zero(P), decode_factor(P, F))
+one{P<:PModN, F}(::Type{FRing{P, F}}) = FR(zero(P), decode_factor(P, F))
 zero{F<:FModN}(f::F) = zero(F)
 one{F<:FModN}(f::F) = one(F)
 
