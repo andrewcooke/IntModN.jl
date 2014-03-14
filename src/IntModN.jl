@@ -1,4 +1,6 @@
 
+# TODO - overflow
+
 # a pragmatic library for doing modular arithmetic.
 
 # the aim here is not to encapsulate a large amount of theory, or to
@@ -308,8 +310,8 @@ showcompact(io::IO, p::ZPoly) = showcompact(io, p.a)
 # number methods
 
 zero{T}(::Type{ZPoly{T}}) = ZPoly{T}(T[])
-one{T}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
 zero{Z<:ZPoly}(z::Z) = zero(Z)
+one{T}(::Type{ZPoly{T}}) = ZPoly{T}([one(T)])
 one{Z<:ZPoly}(z::Z) = one(Z)
 
 =={T}(a::ZPoly{T}, b::ZPoly{T}) = a.a == b.a
@@ -430,6 +432,7 @@ map{P<:ZPoly}(f::Function, a::P, b::P) = ZP(map(f, same_length(a.a, b.a)...))
 for op in (:&, :|, :$)
     @eval $op{P<:ZPoly}(a::P, b::P) = map($op, a, b)
 end
+# TODO - more efficient
 <<{T}(a::ZPoly{T}, n::Int) = a * X(T)^n
 >>>{T}(a::ZPoly{T}, n::Int) = a / X(T)^n
 
@@ -477,11 +480,67 @@ function _convert{T, F}(::Type{T}, from::F)
     result
 end
 
-for (name, op) in ((:+, $), (:-, $), (:|, |), (:&, &))
+zero{U<:Unsigned}(::Type{GF2Poly{U}}) = GF2P(zero(U))
+zero{U<:Unsigned}(::GF2Poly{U}) = GF2P(zero(U))
+one{U<:Unsigned}(::Type{GF2Poly{U}}) = GF2P(one(U))
+one{U<:Unsigned}(::GF2Poly{U}) = GF2P(one(U))
+
+for (name, op) in ((:(==), ==), (:<=, <=), (:<, <), (:+, $), (:-, $), (:|, |), (:&, &), (:$, $))
     @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = GF2Poly($op(a.i, b.i))
 end
 <<{U<:Unsigned}(a::GF2Poly{U}, n::Int) = GF2Poly(a.i << n)
 >>>{U<:Unsigned}(a::GF2Poly{U}, n::Int) = GF2Poly(a.i >>> n)
+
+function *{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
+    big, small = a > b ? (a, b) : (b, a)
+    if small == zero(GF2Poly{U})  # no need to test big
+        small
+    elseif small == one(GF2Poly{U})
+        big
+    else
+        result = zero(GF2Poly{U})
+        while small != zero(GF2Poly{U}) && big != zero(GF2Poly{U})
+            if small & one(GF2Poly{U}) == one(GF2Poly{U})
+                result += big
+            end
+            small >>>= 1
+            big <<= 1
+        end
+        result
+    end
+end
+
+function divrem{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
+    @assert b != zero(GF2Poly{U}) "division by zero polynomial"
+    if a == zero(GF2Poly{U})
+        (a, a)
+    elseif b == one(GF2Poly{U})
+        (a, zero(GF2Poly{U}))
+    elseif b > a
+        (zero(GF2Poly{U}), a)
+    elseif a == b
+        (one(GF2Poly{U}), zero(GF2Poly{U}))
+    else 
+        shift = leading_zeros(b) - leading_zeros(a)  # non-negative
+        rem, div = a, zero(GF2Poly{U})
+        b = b << shift
+        factor = one(GF2Poly{U}) << shift  # no overflow
+        mask = one(GF2Poly{U}) << (8 * sizeof(U) - leading_zeros(a) - 1)
+        for s in shift:-1:0
+            if rem & mask
+                div += factor
+                rem -= b
+            end
+            factor >>= 1
+            b >>= 1
+            mask >>= 1
+        end
+        div, rem
+    end
+end
+
+/{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = _divrem(a, b)[1]
+%{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = _divrem(a, b)[2]
 
 degree{U<:Unsigned}(p::GF2Poly{U}) = 8*sizeof(U) - leading_zeros(p)
 
