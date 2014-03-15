@@ -529,23 +529,24 @@ function *{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
 end
 
 function divrem{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
-    @assert b != zero(GF2Poly{U}) "division by zero polynomial"
-    if a == zero(GF2Poly{U})
+    ONE, ZERO = one(GF2Poly{U}), zero(GF2Poly{U})
+    @assert b != ZERO "division by zero polynomial"
+    if a == ZERO
         (a, a)
-    elseif b == one(GF2Poly{U})
-        (a, zero(GF2Poly{U}))
+    elseif b == ONE
+        (a, ZERO)
     elseif b > a
-        (zero(GF2Poly{U}), a)
+        (ZERO, a)
     elseif a == b
-        (one(GF2Poly{U}), zero(GF2Poly{U}))
+        (ONE, ZERO)
     else 
         shift = leading_zeros(b) - leading_zeros(a)  # non-negative
-        rem, div = a, zero(GF2Poly{U})
-        factor = one(GF2Poly{U}) << shift
+        rem, div = a, ZERO
+        factor = ONE << shift
         b = b << shift  # no overflow (b *= factor)
-        mask = one(GF2Poly{U}) << (8 * sizeof(U) - leading_zeros(rem) - 1)  # msb(rem)
+        mask = ONE << (8 * sizeof(U) - leading_zeros(rem) - 1)  # msb(rem)
         for s in shift:-1:0
-            if rem & mask != zero(GF2Poly{U})
+            if rem & mask != ZERO
                 div += factor
                 rem -= b
             end
