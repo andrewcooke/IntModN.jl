@@ -591,7 +591,7 @@ order{F<:FModN}(::Type{F}) = modulus(F) ^ degree(factor(F)) - 1
 order{F<:FModN}(::F) = order(F)
 
 zero{P<:PModN, F}(::Type{FRing{P, F}}) = FR(zero(P), decode_factor(P, F))
-one{P<:PModN, F}(::Type{FRing{P, F}}) = FR(zero(P), decode_factor(P, F))
+one{P<:PModN, F}(::Type{FRing{P, F}}) = FR(one(P), decode_factor(P, F))
 zero{F<:FModN}(f::F) = zero(F)
 one{F<:FModN}(f::F) = one(F)
 
