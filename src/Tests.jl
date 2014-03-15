@@ -12,7 +12,6 @@ function test_z_constructor()
 
     @assert string(ZR(3, 2, Int)) == "2 mod 3"
     @assert string(ZR(3, 2)) == "2 mod 3"
-    println(sprint(show, ZR(3, 2)))
     @assert sprint(show, ZR(3, 2)) == "ZRing{3,Int64}(2)"
     @assert string(ZF(3, 2, Int)) == "2 mod 3"
     @assert string(ZF(3, 2)) == "2 mod 3"

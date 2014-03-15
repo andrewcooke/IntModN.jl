@@ -28,7 +28,7 @@ function test_op(a, idx, op, T)
                 r1::(T[idx]) = op(p, q)
             catch
                 if q != zero(q)
-                    println("($p1) $op ($q1)")
+                    println("($p) $op ($q)")
                 end
                 @assert q == zero(q)
             end
@@ -41,14 +41,15 @@ function do_timing(n, deg)
 
     # warm up
     a, T = make_randoms(10, deg)
-    for op in (+, -, *, /)
+    for op in (+, -, *, /, %)
         for idx in 1:3
             test_op(a, idx, op, T)
         end
     end
 
     a, T = make_randoms(n, deg)
-    for op in (+, -, *, /)
+#    for op in (+, -, *, /, %)
+    for op in (/, %)
         println("\n$op")
         for idx in 1:3
             @time test_op(a, idx, op, T)
