@@ -446,7 +446,7 @@ end
 # --- GF(2) polynomials encoded as bits
 
 
-type GF2Poly{I<:Unsigned} <: PModN
+immutable GF2Poly{I<:Unsigned} <: PModN
     i::I
 end
 
