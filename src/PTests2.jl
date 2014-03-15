@@ -16,16 +16,16 @@ function make_randoms(n, deg)
     for _ in 1:n
         push!(a, make_random(deg))
     end
-    a
+    (a, (GF2Poly{Uint}, ZPoly{ZField{2,Int}}, Poly{ZField{2,Int}}))
 end
 
-function test_op(a, idx, op)
+function test_op(a, idx, op, T)
     for i in 1:length(a)
-        p = a[i][idx]
+        p::(T[idx]) = a[i][idx]
         for j in 1:length(a)
-            q = a[j][idx] 
+            q::(T[idx]) = a[j][idx] 
             try
-                r1 = op(p, q)
+                r1::(T[idx]) = op(p, q)
             catch
                 if q != zero(q)
                     println("($p1) $op ($q1)")
@@ -40,18 +40,18 @@ end
 function do_timing(n, deg)
 
     # warm up
-    a = make_randoms(10, deg)
+    a, T = make_randoms(10, deg)
     for op in (+, -, *, /)
         for idx in 1:3
-            test_op(a, idx, op)
+            test_op(a, idx, op, T)
         end
     end
 
-    a = make_randoms(n, deg)
+    a, T = make_randoms(n, deg)
     for op in (+, -, *, /)
         println("\n$op")
         for idx in 1:3
-            @time test_op(a, idx, op)
+            @time test_op(a, idx, op, T)
         end
     end
 end

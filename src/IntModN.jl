@@ -20,7 +20,7 @@ module IntModN
 
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule, length, getindex, setindex!, start, done, next,
-       rand, rand!, print, map, leading_zeros
+       rand, rand!, print, map, leading_zeros, divrem
 
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
@@ -498,11 +498,11 @@ one{U<:Unsigned}(::Type{GF2Poly{U}}) = GF2P(one(U))
 one{U<:Unsigned}(::GF2Poly{U}) = GF2P(one(U))
 
 
--{U<:Unsigned}(a::GF2Poly{U}) = a
-for (name, op) in ((:+, $), (:-, $), (:|, |), (:&, &), (:$, $))
-    @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = GF2P($op(a.i, b.i))
+-{U<:Unsigned}(a::GF2Poly{U}) = ea
+for (name, op) in ((:+, :$), (:-, :$), (:|, :|), (:&, :&), (:$, :$))
+    @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = GF2Poly{U}($op(a.i, b.i))
 end
-for (name, op) in ((:(==), ==), (:<=, <=), (:<, <))
+for (name, op) in ((:(==), :(==)), (:<=, :<=), (:<, :<))
     @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = $op(a.i, b.i)
 end
 <<{U<:Unsigned}(a::GF2Poly{U}, n::Int) = GF2Poly(a.i << n)
@@ -541,7 +541,7 @@ function divrem{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
         (ONE, ZERO)
     else 
         shift = leading_zeros(b) - leading_zeros(a)  # non-negative
-        rem, div = a, ZERO
+        rem::GF2Poly{U}, div::GF2Poly{U} = a, ZERO
         factor = ONE << shift
         b = b << shift  # no overflow (b *= factor)
         mask = ONE << (8 * sizeof(U) - leading_zeros(rem) - 1)  # msb(rem)
