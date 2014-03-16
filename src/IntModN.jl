@@ -539,27 +539,29 @@ function divrem{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
         (a, a)
     elseif b == ONE
         (a, ZERO)
-    elseif b > a
-        (ZERO, a)
     elseif a == b
         (ONE, ZERO)
     else 
-        shift = leading_zeros(b) - leading_zeros(a)  # non-negative
-        rem::GF2Poly{U}, div::GF2Poly{U} = a, ZERO
-        factor = ONE << shift
-        b = b << shift  # no overflow (b *= factor)
-        mask = ONE << (8 * sizeof(U) - leading_zeros(rem) - 1)  # msb(rem)
-#        for _ in 0:shift
-        for _ in shift:-1:0
-            if rem & mask != ZERO
-                div += factor
-                rem -= b
+        shift = leading_zeros(b) - leading_zeros(a)
+        if shift < 0
+            (ZERO, a)
+        else 
+            rem::GF2Poly{U}, div::GF2Poly{U} = a, ZERO
+            factor = ONE << shift
+            b = b << shift  # no overflow (b *= factor)
+            mask = ONE << (8 * sizeof(U) - leading_zeros(rem) - 1)  # msb(rem)
+            for _ in 0:shift
+#            for _ in shift:-1:0
+                if rem & mask != ZERO
+                    div += factor
+                    rem -= b
+                end
+                factor >>>= 1
+                b >>>= 1
+                mask >>>= 1
             end
-            factor >>>= 1
-            b >>>= 1
-            mask >>>= 1
+            div, rem
         end
-        div, rem
     end
 end
 

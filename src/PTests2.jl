@@ -51,10 +51,8 @@ function do_timing(n, deg)
     end
 
     a, T = make_randoms(n, deg)
-    println(a[1])
-    println(a[2])
-#    for op in (+, -, *, /, %)
-    for op in (/, %)
+    for op in (+, -, *, /, %)
+#    for op in (/, %)
         println("\n$op")
         for idx in 1:3
             @time test_op(a, idx, op, T)
@@ -62,7 +60,7 @@ function do_timing(n, deg)
     end
 end
 
-do_timing(100, 8)
+do_timing(1000, 8)
 
 
 function test_eq(a, T, op)
@@ -78,7 +76,7 @@ function test_eq(a, T, op)
                     catch
                     end
                     for t2 in 1:length(T)
-                        println("test $i1 $i2 $(T[t1]) $(T[t2]) $x")
+#                        println("test $i1 $i2 $(T[t1]) $(T[t2]) $x")
                         p2 = a[i1][t2]
                         q2 = a[i2][t2]
                         r2 = nothing
@@ -101,8 +99,10 @@ function test_eq(a, T, op)
 end
 
 function do_eq(n, deg)
+    print("\ntesting eq...")
     a, T = make_randoms(n, deg)
     test_eq(a, T, (+, -, *, /, %))
+    println("ok")
 end
 
-do_eq(10, 8)
+do_eq(30, 8)
