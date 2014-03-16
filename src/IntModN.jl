@@ -340,7 +340,7 @@ end
 <={T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, true)
 <{T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, false)
 
-# apply function, discarding zeros from start
+# apply function, discarding zeros from start (unless copied=true)
 function apply{T}(f, big::Vector{T}, small::Vector{T}; copied=false)
     shift = length(big) - length(small)
     if shift > 0 && !copied
@@ -386,6 +386,9 @@ function -{T}(a::ZPoly{T}, b::ZPoly{T})
     elseif la >= lb
         ZPoly{T}(apply(-, a.a, b.a))
     else
+        # this copies b (big), but is only used when the length of b
+        # is strictly larger than a, so we will not need to truncate
+        # the result
         ZPoly{T}(apply(+, -b.a, a.a, copied=true))
     end
 end

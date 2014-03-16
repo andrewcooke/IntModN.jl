@@ -115,7 +115,7 @@ end
 
 function tests()
     do_timing(300, 8)
-    do_eq(100, 2)
+    do_eq(30, 2)
 end
 
 end
