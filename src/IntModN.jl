@@ -466,6 +466,10 @@ convert{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, i::I) = GF2P(convert(U, i %
 promote_rule{I<:Unsigned, U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{I}) = GF2Poly{U}
 promote_rule{U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{Int}) = GF2Poly{U}
 
+# promote to ZPoly mainly for equality tests (convert below)
+promote_rule{U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{ZPoly{ZField{2,U}}}) = ZPoly{ZField{2,U}}
+
+
 # TODO - getindex etc?
 
 # for display we first convert to to ZPoly.  this is not efficient,
@@ -545,8 +549,8 @@ function divrem{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
         factor = ONE << shift
         b = b << shift  # no overflow (b *= factor)
         mask = ONE << (8 * sizeof(U) - leading_zeros(rem) - 1)  # msb(rem)
-        for _ in 0:shift
-#        for _ in shift:-1:0
+#        for _ in 0:shift
+        for _ in shift:-1:0
             if rem & mask != ZERO
                 div += factor
                 rem -= b

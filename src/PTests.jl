@@ -1,4 +1,7 @@
 
+# equality and speed tests for ZPoly and Poly
+# largely superceded by PTests2.jl
+
 using Polynomial, IntModN
 
 import Base: promote_rule, convert
