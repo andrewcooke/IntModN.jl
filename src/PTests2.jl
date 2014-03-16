@@ -13,25 +13,25 @@ export tests
 convert{T}(::Type{ZPoly{T}}, p::Poly{T}) = ZP(p.a)
 # cannot use promotion with poly as not a Number
 =={T}(a::ZPoly{T}, b::Poly{T}) = a == convert(ZPoly{T}, b)
-=={T}(a::GF2Poly{T}, b::Poly{ZField{2,T}}) = convert(ZPoly{ZField{2,T}}, a) == convert(ZPoly{ZField{2,T}}, b)
-=={T}(a::Poly{T}, b::ZPoly{T}) = b == convert(ZPoly{T}, a)
-=={T}(a::Poly{ZField{2,T}}, b::GF2Poly{T}) = convert(ZPoly{ZField{2,T}}, a) == convert(ZPoly{ZField{2,T}}, b)
+=={T}(a::Poly{T}, b::ZPoly{T}) = convert(ZPoly{T}, a) == b
+=={U<:Unsigned,I<:Integer}(a::GF2Poly{U}, b::Poly{ZField{2,I}}) = convert(ZPoly{ZField{2,I}}, a) == convert(ZPoly{ZField{2,I}}, b)
+=={U<:Unsigned,I<:Integer}(a::Poly{ZField{2,I}}, b::GF2Poly{U}) = convert(ZPoly{ZField{2,I}}, a) == convert(ZPoly{ZField{2,I}}, b)
 
 
 
 function make_random(deg)
-    T = ZField{2,Uint}
+    T = ZField{2,Int}
     a = rand!(T, Array(T, rand(0:deg+1)))
     p = ZP(a)
     convert(GF2Poly{Uint}, p), p, Poly(a)
 end
 
 function make_randoms(n, deg)
-    a = (GF2Poly{Uint}, ZPoly{ZField{2,Uint}}, Poly{ZField{2,Uint}})[]
+    a = (GF2Poly{Uint}, ZPoly{ZField{2,Int}}, Poly{ZField{2,Int}})[]
     for _ in 1:n
         push!(a, make_random(deg))
     end
-    (a, (GF2Poly{Uint}, ZPoly{ZField{2,Uint}}, Poly{ZField{2,Uint}}))
+    (a, (GF2Poly{Uint}, ZPoly{ZField{2,Int}}, Poly{ZField{2,Int}}))
 end
 
 function test_op(a, idx, op, T)

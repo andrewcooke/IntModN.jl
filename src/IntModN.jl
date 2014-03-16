@@ -467,7 +467,7 @@ promote_rule{I<:Unsigned, U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{I}) = GF2Poly{
 promote_rule{U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{Int}) = GF2Poly{U}
 
 # promote to ZPoly mainly for equality tests (convert below)
-promote_rule{U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{ZPoly{ZField{2,U}}}) = ZPoly{ZField{2,U}}
+promote_rule{U<:Unsigned,I<:Integer}(::Type{GF2Poly{U}}, ::Type{ZPoly{ZField{2,I}}}) = ZPoly{ZField{2,I}}
 
 
 # TODO - getindex etc?
