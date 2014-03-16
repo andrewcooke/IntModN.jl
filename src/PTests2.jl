@@ -37,7 +37,7 @@ end
 function test_op(a, idx, op, T)
     for i in 1:length(a)
         for j in 1:length(a)
-            if a[i][1] > a[j][1] && a[j][1] != zero(T[1])  # no short cct
+            if !in(op, (rem, div, %, /)) || a[j][1] != zero(T[1])
                 op(a[i][idx], a[j][idx])
             end
         end
@@ -115,7 +115,7 @@ end
 
 function tests()
     do_timing(300, 8)
-    do_eq(30, 8)
+    do_eq(100, 2)
 end
 
 end

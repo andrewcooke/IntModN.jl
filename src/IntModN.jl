@@ -341,10 +341,9 @@ end
 <{T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, false)
 
 # apply function, discarding zeros from start
-function apply{T}(f, big::Vector{T}, small::Vector{T})
-    copied = false
+function apply{T}(f, big::Vector{T}, small::Vector{T}; copied=false)
     shift = length(big) - length(small)
-    if shift > 0
+    if shift > 0 && !copied
         big = copy(big)
         copied = true
     end
@@ -387,7 +386,7 @@ function -{T}(a::ZPoly{T}, b::ZPoly{T})
     elseif la >= lb
         ZPoly{T}(apply(-, a.a, b.a))
     else
-        ZPoly{T}(apply(+, -b.a, a.a))
+        ZPoly{T}(apply(+, -b.a, a.a, copied=true))
     end
 end
 
@@ -436,7 +435,7 @@ function _divrem{T}(a::Vector{T}, b::Vector{T})
 end
 
 function divrem{T}(a::ZPoly{T}, b::ZPoly{T})
-    map(ZP, _divrem(a.a, b.a))
+    map(ZP, _divrem(a.a, b.a))  # ZP discards leading zeroes
 end
 
 /{T}(a::ZPoly{T}, b::ZPoly{T}) = ZP(_divrem(a.a, b.a)[1])
