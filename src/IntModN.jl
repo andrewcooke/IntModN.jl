@@ -200,6 +200,7 @@ end
 abstract PModN <: IntegerOnly
 
 
+
 # --- arbitrary (but "integer") coeff polynomials
 
 
@@ -212,7 +213,7 @@ abstract PModN <: IntegerOnly
 
 immutable ZPoly{I<:Integer} <: PModN
     a::Vector{I}
-    ZPoly(a) = length(a) == 0 || a[1] > zero(I) ? new(a) : error("zero leading coeff")
+    ZPoly(a) = length(a) == 0 || a[1] != zero(I) ? new(a) : error("zero leading coeff")
 end
 
 # constructors
@@ -339,35 +340,56 @@ end
 <={T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, true)
 <{T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, false)
 
-# some optimisation here to reduce copying of arrays
-# big is modified; small is not - see liftp and +,- below
-# apply function, discarding zeros from start if shrink
-function apply{T}(f, big::Array{T,1}, small::Array{T,1})
+# apply function, discarding zeros from start
+function apply{T}(f, big::Vector{T}, small::Vector{T})
+    copied = false
     shift = length(big) - length(small)
-    @assert shift >= 0
-    shrink = shift == 0
+    if shift > 0
+        big = copy(big)
+        copied = true
+    end
     for i in 1:length(small)
         x = f(big[i+shift], small[i])
-        if x != zero(T) && shrink
-            big = big[i:end]  # shift == 0
+        if x != zero(T) && !copied
+            big = big[i:end]  # shift == 0 if not copied
             shift = 1-i
-            shrink = false
+            copied = true
         end
-        if !shrink
+        if copied
             big[i+shift] = x
         end
     end
-    if shrink
+    if !copied
         big = T[]
     end
     big
 end    
 
-liftp(c, f, a) = c(f(a.a))
-liftp(c, f, aa, ba) = c(apply(f, aa, ba))
--{T}(a::ZPoly{T}) = liftp(ZPoly{T}, -, a)
-+{T}(a::ZPoly{T}, b::ZPoly{T}) = length(a) >= length(b) ? liftp(ZPoly{T}, +, copy(a.a), b.a) : liftp(ZPoly{T}, +, copy(b.a), a.a)
--{T}(a::ZPoly{T}, b::ZPoly{T}) = length(a) >= length(b) ? liftp(ZPoly{T}, -, copy(a.a), b.a) : liftp(ZPoly{T}, +, -b.a, a.a)
+-{T}(a::ZPoly{T}) = ZPoly{T}(-a.a)
+
+function +{T}(a::ZPoly{T}, b::ZPoly{T})
+    la, lb = length(a), length(b)
+    if la == 0
+        b
+    elseif lb == 0
+        a
+    elseif la >= lb
+        ZPoly{T}(apply(+, a.a, b.a))
+    else
+        ZPoly{T}(apply(+, b.a, a.a))
+    end
+end
+
+function -{T}(a::ZPoly{T}, b::ZPoly{T})
+    la, lb = length(a), length(b)
+    if la == lb && a == b
+        zero(ZPoly{T})
+    elseif la >= lb
+        ZPoly{T}(apply(-, a.a, b.a))
+    else
+        ZPoly{T}(apply(+, -b.a, a.a))
+    end
+end
 
 function *{T}(a::ZPoly{T}, b::ZPoly{T})
     big, small = length(a) > length(b) ? (a, b) : (b, a)

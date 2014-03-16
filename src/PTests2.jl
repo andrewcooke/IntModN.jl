@@ -59,6 +59,7 @@ function do_timing(n, deg)
 #    for op in (/, %)
         println("\n$op")
         for idx in 1:3
+#            print("$(T[idx]): ")
             @time test_op(a, idx, op, T)
         end
     end
