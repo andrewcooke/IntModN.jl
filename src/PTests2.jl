@@ -1,9 +1,13 @@
 
 # equality and speed tests for ZPoly, GF2Poly, and Poly
 
+module PTests2
+
 using Polynomial, IntModN
 
 import Base: promote_rule, convert
+
+export tests
 
 
 convert{T}(::Type{ZPoly{T}}, p::Poly{T}) = ZP(p.a)
@@ -60,7 +64,7 @@ function do_timing(n, deg)
     end
 end
 
-do_timing(1000, 8)
+#do_timing(1000, 8)
 
 
 function test_eq(a, T, op)
@@ -105,4 +109,12 @@ function do_eq(n, deg)
     println("ok")
 end
 
-do_eq(30, 8)
+#do_eq(30, 8)
+
+
+function tests()
+    do_timing(300, 8)
+    do_eq(30, 8)
+end
+
+end

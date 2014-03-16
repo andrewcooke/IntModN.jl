@@ -639,7 +639,12 @@ inv{F<:FRing}(f::F) = FR(extended_euclidean(f.p, factor(f)), factor(f))
 d = Pkg.dir("IntModN")
 d = "$d/src"
 push!(LOAD_PATH, d)
-import Tests: tests
+import Tests
+import PTests2
+function tests()
+    Tests.tests()
+    PTests2.tests()
+end
 pop!(LOAD_PATH)
 
 end
