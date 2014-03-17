@@ -126,7 +126,7 @@ function do_eq(n, deg)
     test_eq(a, T, (+, -, *, /, %))
     println("ok")
 
-    print("\ntesting eq (mod 5)...")
+    print("testing eq (mod 5)...")
     a, T = make_randoms(n, deg, 5)
     test_eq(a, T, (+, -, *, /, %))
     println("ok")
