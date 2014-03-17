@@ -342,14 +342,16 @@ end
 
 # apply function, discarding zeros from start (unless copied=true)
 function apply{T}(f, big::Vector{T}, small::Vector{T}; copied=false)
+    ZERO = zero(T)
     shift = length(big) - length(small)
     if shift > 0 && !copied
         big = copy(big)
         copied = true
     end
     for i in 1:length(small)
-        x = f(big[i+shift], small[i])
-        if x != zero(T) && !copied
+        # type ::T below cleans up profile output for some odd reason
+        x::T = f(big[i+shift], small[i])
+        if x != ZERO && !copied
             big = big[i:end]  # shift == 0 if not copied
             shift = 1-i
             copied = true
@@ -386,10 +388,18 @@ function -{T}(a::ZPoly{T}, b::ZPoly{T})
     elseif la >= lb
         ZPoly{T}(apply(-, a.a, b.a))
     else
-        # this copies b (big), but is only used when the length of b
-        # is strictly larger than a, so we will not need to truncate
-        # the result
-        ZPoly{T}(apply(+, -b.a, a.a, copied=true))
+        # in this case, b is strictly bigger than a, and leading
+        # coeffs must benegated.  so there's no chance to truncate and
+        # we cannot shift past the start.  so do it here.
+        result = Array(T, lb)
+        d = lb - la
+        for i = 1:d
+            result[i] = -b.a[i]
+        end
+        for i = 1:la
+            result[i+d] = a[i] - b[i+d]
+        end
+        ZPoly{T}(result)
     end
 end
 

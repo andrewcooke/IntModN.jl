@@ -35,9 +35,11 @@ function make_randoms(n, deg)
 end
 
 function test_op(a, idx, op, T)
+    check_zero = in(op, (rem, div, %, /))
+    ZERO = zero(T[1])
     for i in 1:length(a)
         for j in 1:length(a)
-            if !in(op, (rem, div, %, /)) || a[j][1] != zero(T[1])
+            if !check_zero || a[j][1] != ZERO
                 op(a[i][idx], a[j][idx])
             end
         end
