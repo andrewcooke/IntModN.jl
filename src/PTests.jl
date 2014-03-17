@@ -1,108 +1,143 @@
 
-# equality and speed tests for ZPoly and Poly
-# largely superceded by PTests2.jl
+# equality and speed tests for ZPoly, GF2Poly, and Poly
+
+module PTests
 
 using Polynomial, IntModN
 
 import Base: promote_rule, convert
 
+export tests
 
-function random_zp(N, deg)
-    T = ZField{N, Int}
-    ZP(rand!(T, Array(T, rand(0:deg+1))))
-end
-
-function random_p(N, deg)
-    T = ZField{N, Int}
-    Poly(rand!(T, Array(T, rand(0:deg+1))))
-end
-
-function random_ps(N, deg)
-    T = ZField{N, Int}
-    a = rand!(T, Array(T, rand(0:deg+1)))
-    ZP(a), Poly(a)
-end
 
 convert{T}(::Type{ZPoly{T}}, p::Poly{T}) = ZP(p.a)
 # cannot use promotion with poly as not a Number
 =={T}(a::ZPoly{T}, b::Poly{T}) = a == convert(ZPoly{T}, b)
-=={T}(a::Poly{T}, b::ZPoly{T}) = b == convert(ZPoly{T}, a)
+=={T}(a::Poly{T}, b::ZPoly{T}) = convert(ZPoly{T}, a) == b
+=={U<:Unsigned,I<:Integer}(a::GF2Poly{U}, b::Poly{ZField{2,I}}) = convert(ZPoly{ZField{2,I}}, a) == convert(ZPoly{ZField{2,I}}, b)
+=={U<:Unsigned,I<:Integer}(a::Poly{ZField{2,I}}, b::GF2Poly{U}) = convert(ZPoly{ZField{2,I}}, a) == convert(ZPoly{ZField{2,I}}, b)
 
-function random_op()
-    [+,-,/,*][rand(1:4)]
+
+
+function make_random(deg, modulus)
+    T = ZField{modulus,Int}
+    a = rand!(T, Array(T, rand(0:deg+1)))
+    p = ZP(a)
+    p, Poly(a)
 end
 
-
-function test_eq()
-    for i in 1:10
-        p1, p2 = random_ps(5, 5)
-        @assert p1 == p2
+function make_randoms(n, deg, modulus)
+    a = (ZPoly{ZField{modulus,Int}}, Poly{ZField{modulus,Int}})[]
+    for _ in 1:n
+        push!(a, make_random(deg, modulus))
     end
-    println("test_eq ok")
+    (a, (ZPoly{ZField{modulus,Int}}, Poly{ZField{modulus,Int}}))
 end
 
-function test_op()
-    for i in 1:100
-        p1, p2 = random_ps(5, 5)
-        q1, q2 = random_ps(5, 5)
-        op = random_op()
-        try
-            r1 = op(p1, q1)
-            r2 = op(p2, q2)
-            if r1 != r2
-                println("($p1) $op ($q1)")
+function make_random2(deg)
+    T = ZField{2,Int}
+    a = rand!(T, Array(T, rand(0:deg+1)))
+    p = ZP(a)
+    convert(GF2Poly{Uint}, p), p, Poly(a)
+end
+
+function make_randoms2(n, deg)
+    a = (GF2Poly{Uint}, ZPoly{ZField{2,Int}}, Poly{ZField{2,Int}})[]
+    for _ in 1:n
+        push!(a, make_random2(deg))
+    end
+    (a, (GF2Poly{Uint}, ZPoly{ZField{2,Int}}, Poly{ZField{2,Int}}))
+end
+
+function test_op(a, idx, op, T)
+    check_zero = in(op, (rem, div, %, /))
+    ZERO = zero(T[1])
+    for i in 1:length(a)
+        for j in 1:length(a)
+            if !check_zero || a[j][1] != ZERO
+                op(a[i][idx], a[j][idx])
             end
-            @assert r1 == r2
-        catch
-            if length(q1) != 0
-                println("($p1) $op ($q1)")
-            end
-            @assert length(q1) == 0
         end
     end
-    println("test_op ok")
 end
 
+function do_timing(n, deg)
 
-function do_rand_zp(N, deg; ops=[+,-,*,/])
-    try 
-        ops[rand(1:length(ops))](random_zp(N, deg), random_zp(N, deg))
-    catch
-        # ignore /0
-    end
-end
-
-function do_rand_p(N, deg; ops=[+,-,*,/])
-    try
-        ops[rand(1:length(ops))](random_p(N, deg), random_p(N, deg))
-    catch
-        # ignore /0
-    end
-end
-
-function do_timing(n, N, deg)
     # warm up
-    for i in 1:n
-        do_rand_zp(N, deg)
-        do_rand_p(N, deg)
+    a, T = make_randoms2(10, deg)
+    for op in (+, -, *, /, %)
+        for idx in 1:3
+            test_op(a, idx, op, T)
+        end
     end
-    println("any operation")
-    @time (for i in 1:n; do_rand_zp(N, deg); end)
-    @time (for i in 1:n; do_rand_p(N, deg); end)
-    println("division")
-    @time (for i in 1:n; do_rand_zp(N, deg, ops=[/]); end)
-    @time (for i in 1:n; do_rand_p(N, deg, ops=[/]); end)
-    println("multiplication")
-    @time (for i in 1:n; do_rand_zp(N, deg, ops=[*]); end)
-    @time (for i in 1:n; do_rand_p(N, deg, ops=[*]); end)
-    println("addition + subtraction")
-    @time (for i in 1:n; do_rand_zp(N, deg, ops=[+,-]); end)
-    @time (for i in 1:n; do_rand_p(N, deg, ops=[+,-]); end)
+
+    a, T = make_randoms2(n, deg)
+    for op in (+, -, *, /, %)
+#    for op in (/, %)
+        println("\n$op")
+        for idx in 1:3
+#            print("$(T[idx]): ")
+            @time test_op(a, idx, op, T)
+        end
+    end
 end
+
+#do_timing(1000, 8)
+
+
+function test_eq(a, T, op)
+    for i1 in 1:length(a)
+        for i2 in 1:length(a)
+            for t1 in 1:length(T)
+                p1 = a[i1][t1]
+                q1 = a[i2][t1]
+                for x in op
+                    r1 = nothing
+                    try
+                        r1 = x(p1, q1)
+                    catch
+                    end
+                    for t2 in 1:length(T)
+#                        println("test $i1 $i2 $(T[t1]) $(T[t2]) $x")
+                        p2 = a[i1][t2]
+                        q2 = a[i2][t2]
+                        r2 = nothing
+                        try
+                            r2 = x(p2, q2)
+                        catch
+                        end
+                        if r1 != r2
+                            println("($p1) $x ($q1)")
+                            println("r1  $(typeof(r1))  $(r1)")
+                            println("($p2) $x ($q2)")
+                            println("r2  $(typeof(r2))  $(r2)")
+                        end
+                        @assert r1 == r2
+                    end
+                end
+            end
+        end
+    end
+end
+
+function do_eq(n, deg)
+    print("\ntesting eq (mod 2)...")
+    a, T = make_randoms2(n, deg)
+    test_eq(a, T, (+, -, *, /, %))
+    println("ok")
+
+    print("\ntesting eq (mod 5)...")
+    a, T = make_randoms(n, deg, 5)
+    test_eq(a, T, (+, -, *, /, %))
+    println("ok")
+end
+
+#do_eq(30, 8)
 
 
 function tests()
-    test_eq()
-    test_op()
-    do_timing(100000, 5, 10)
+    do_timing(300, 8)
+    do_eq(30, 2)
+end
+
 end

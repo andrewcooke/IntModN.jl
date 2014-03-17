@@ -690,10 +690,10 @@ d = Pkg.dir("IntModN")
 d = "$d/src"
 push!(LOAD_PATH, d)
 import Tests
-import PTests2
+import PTests
 function tests()
     Tests.tests()
-    PTests2.tests()
+    PTests.tests()
 end
 pop!(LOAD_PATH)
 
