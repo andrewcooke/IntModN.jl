@@ -340,26 +340,30 @@ end
 <={T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, true)
 <{T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, false)
 
-# apply function on overlap, discarding zeros from star
+# apply function on overlap, discarding zeros from start
 function apply{T}(f, big::Vector{T}, small::Vector{T})
     ZERO = zero(T)
-    shift = length(big) - length(small)
-    if shift > 0
-        big = copy(big)
+    shift_in = length(big) - length(small)
+    if shift_in > 0
+        result = Array{T, length(big)}
+        for i in 1:shift_in
+            result[i] = big[i]
+        end
+        shift_out = -shift_in
         copied = true
     else
         copied = false
     end
     for i in 1:length(small)
         # type ::T below cleans up profile output for some odd reason
-        x::T = f(big[i+shift], small[i])
+        x::T = f(big[i+shift_in], small[i])
         if x != ZERO && !copied
-            big = big[i:end]  # shift == 0 if not copied
-            shift = 1-i
+            result = Array(T, length(small) - i + 1)
+            shift_out = 1-i
             copied = true
         end
         if copied
-            big[i+shift] = x
+            result[i+shift_out] = x
         end
     end
     if !copied
