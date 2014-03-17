@@ -394,10 +394,12 @@ end
 
 function -{T}(a::ZPoly{T}, b::ZPoly{T})
     la, lb = length(a), length(b)
-    if la == lb && a == b
-        zero(ZPoly{T})
-    elseif la == lb
-        ZPoly{T}(_truncate(-, a.a, b.a))
+    if la == lb
+        if a == b
+            zero(ZPoly{T})
+        else
+            ZPoly{T}(_truncate(-, a.a, b.a))
+        end
     elseif la > lb
         ZPoly{T}(_skip(-, a.a, b.a))
     else
@@ -437,22 +439,23 @@ function *{T}(a::ZPoly{T}, b::ZPoly{T})
 end
 
 function _divrem{T}(a::Vector{T}, b::Vector{T})
-    @assert length(b) > 0 "division by zero polynomial"
-    if length(a) == 0
+    la, lb = length(a), length(b)
+    @assert lb > 0 "division by zero polynomial"
+    if la == 0
         (a, a)
-    elseif length(b) == 1 && b[1] == one(T)
+    elseif lb == 1 && b[1] == one(T)
         (a, T[])
-    elseif length(b) > length(a)
+    elseif lb > la
         (T[], a)
     elseif a == b
         ([one(T)], T[])
     else 
-        shift = length(a) - length(b)
+        shift = la - lb
         rem, div = copy(a), zeros(T, shift + 1)
         for s in 0:shift
             factor = rem[s+1] / b[1]
             div[s+1] = factor
-            for i in 1:length(b)
+            for i in 1:lb
                 rem[s+i] -= factor * b[i]
             end
         end
