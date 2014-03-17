@@ -19,7 +19,7 @@ See the
 ### Simultaneous Equations
 
 Answering [this
-question](http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation):
+question](http://math.stackexchange.com/questions/169921/how-to-solve-system-of-linear-equations-of-xor-operation) (in GF(2)):
 
 ```
 julia> using IntModN
@@ -67,9 +67,9 @@ julia> print(FR(x^7 + x^6 + x^3 + x, rijndael) * FR(x^6 + x^4 + x + 1, rijndael)
 1 mod x^8 + x^4 + x^3 + x + 1 mod 2
 ```
 
-### Fast Polynomials in GF2
+### Fast Polynomials in GF(2)
 
-The examples above could have been in any field.  I chose GF2 only
+The examples above could have used any modulus.  I chose GF(2) only
 because it is common.
 
 However, the following works only in GF2 (the trade-off for the lack
