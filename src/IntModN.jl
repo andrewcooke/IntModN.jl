@@ -340,39 +340,42 @@ end
 <={T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, true)
 <{T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, false)
 
-# apply function on overlap, discarding zeros from start
-function apply{T}(f, big::Vector{T}, small::Vector{T})
-    ZERO = zero(T)
-    shift_in = length(big) - length(small)
-    if shift_in > 0
-        result = Array{T, length(big)}
-        for i in 1:shift_in
-            result[i] = big[i]
-        end
-        shift_out = -shift_in
-        copied = true
-    else
-        copied = false
-    end
-    for i in 1:length(small)
-        # type ::T below cleans up profile output for some odd reason
-        x::T = f(big[i+shift_in], small[i])
+-{T}(a::ZPoly{T}) = ZPoly{T}(-a.a)
+
+# a and b same lengthl discard leading zeroes
+function _truncate{T}(f, a::Vector{T}, b::Vector{T})
+    ZERO, la = zero(T), length(a)
+    copied = false
+    for i in 1:la
+        x::T = f(a[i], b[i])
         if x != ZERO && !copied
-            result = Array(T, length(small) - i + 1)
-            shift_out = 1-i
+            result = Array(T, la - i + 1)
+            shift = 1-i
             copied = true
         end
         if copied
-            result[i+shift_out] = x
+            result[i+shift] = x
         end
     end
     if !copied
-        big = T[]
+        result = T[]
     end
-    big
-end    
+    result
+end
 
--{T}(a::ZPoly{T}) = ZPoly{T}(-a.a)
+# big longer than small; copy extra values
+function _skip{T}(f, big::Vector{T}, small::Vector{T})
+    lb = length(big)
+    d = lb - length(small)
+    result = Array(T, lb)
+    for i in 1:d
+        result[i] = big[i]
+    end
+    for i in d+1:lb
+        result[i] = f(big[i], small[i-d])
+    end
+    result
+end
 
 function +{T}(a::ZPoly{T}, b::ZPoly{T})
     la, lb = length(a), length(b)
@@ -380,10 +383,12 @@ function +{T}(a::ZPoly{T}, b::ZPoly{T})
         b
     elseif lb == 0
         a
-    elseif la >= lb
-        ZPoly{T}(apply(+, a.a, b.a))
+    elseif la == lb
+        ZPoly{T}(_truncate(+, a.a, b.a))
+        elseif la > lb
+        ZPoly{T}(_skip(+, a.a, b.a))
     else
-        ZPoly{T}(apply(+, b.a, a.a))
+        ZPoly{T}(_skip(+, b.a, a.a))
     end
 end
 
@@ -391,8 +396,10 @@ function -{T}(a::ZPoly{T}, b::ZPoly{T})
     la, lb = length(a), length(b)
     if la == lb && a == b
         zero(ZPoly{T})
-    elseif la >= lb
-        ZPoly{T}(apply(-, a.a, b.a))
+    elseif la == lb
+        ZPoly{T}(_truncate(-, a.a, b.a))
+    elseif la > lb
+        ZPoly{T}(_skip(-, a.a, b.a))
     else
         # in this case, b is strictly bigger than a, and leading
         # coeffs must be negated.  so there's no chance to truncate
