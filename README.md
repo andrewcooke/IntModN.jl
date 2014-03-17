@@ -73,7 +73,8 @@ The examples above could have been in any field.  I chose GF2 only
 because it is common.
 
 However, the following works only in GF2 (the trade-off for the lack
-of flexibility is speed):
+of flexibility is speed and compactness - these are encoded as bit
+patterns):
 
 ```
 julia> x = GF2X(Uint8)
