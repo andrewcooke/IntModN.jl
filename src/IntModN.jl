@@ -385,7 +385,7 @@ function +{T}(a::ZPoly{T}, b::ZPoly{T})
         a
     elseif la == lb
         ZPoly{T}(_truncate(+, a.a, b.a))
-        elseif la > lb
+    elseif la > lb
         ZPoly{T}(_skip(+, a.a, b.a))
     else
         ZPoly{T}(_skip(+, b.a, a.a))
