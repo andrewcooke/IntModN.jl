@@ -72,7 +72,7 @@ julia> print(FR(x^7 + x^6 + x^3 + x, rijndael) * FR(x^6 + x^4 + x + 1, rijndael)
 The examples above could have used any modulus.  I chose GF(2) only
 because it is common.
 
-However, the following works only in GF2 (the trade-off for the lack
+However, the following works only in GF(2) (the trade-off for the lack
 of flexibility is speed and compactness - these are encoded as bit
 patterns):
 
