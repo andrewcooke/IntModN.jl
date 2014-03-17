@@ -340,13 +340,15 @@ end
 <={T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, true)
 <{T}(a::ZPoly{T}, b::ZPoly{T}) = cmp(a, b, false)
 
-# apply function, discarding zeros from start (unless copied=true)
-function apply{T}(f, big::Vector{T}, small::Vector{T}; copied=false)
+# apply function on overlap, discarding zeros from star
+function apply{T}(f, big::Vector{T}, small::Vector{T})
     ZERO = zero(T)
     shift = length(big) - length(small)
-    if shift > 0 && !copied
+    if shift > 0
         big = copy(big)
         copied = true
+    else
+        copied = false
     end
     for i in 1:length(small)
         # type ::T below cleans up profile output for some odd reason
@@ -389,8 +391,8 @@ function -{T}(a::ZPoly{T}, b::ZPoly{T})
         ZPoly{T}(apply(-, a.a, b.a))
     else
         # in this case, b is strictly bigger than a, and leading
-        # coeffs must benegated.  so there's no chance to truncate and
-        # we cannot shift past the start.  so do it here.
+        # coeffs must be negated.  so there's no chance to truncate
+        # and we cannot shift past the start.  so do it here.
         result = Array(T, lb)
         d = lb - la
         for i = 1:d
