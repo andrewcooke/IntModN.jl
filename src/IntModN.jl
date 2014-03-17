@@ -450,7 +450,7 @@ function _divrem{T}(a::Vector{T}, b::Vector{T})
     elseif a == b
         ([one(T)], T[])
     else 
-        shift = la - lb
+        shift = la - lb  # non-negative
         rem, div = copy(a), zeros(T, shift + 1)
         for s in 0:shift
             factor = rem[s+1] / b[1]
