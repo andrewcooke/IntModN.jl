@@ -199,6 +199,10 @@ end
 
 abstract PModN <: IntegerOnly
 
+endof(a::PModN) = length(a)
+start(::PModN) = 1
+done(a::PModN, i) = i > length(a)
+next(a::PModN, i) = (a[i], i+1)
 
 
 # --- arbitrary (but "integer") coeff polynomials
@@ -256,12 +260,9 @@ convert{I<:Integer}(::Type{ZPoly{I}}, i::Integer) = ZP([convert(I, i)])
 
 # can be accessed and modified (but don't do that in public) as arrays
 getindex(a::ZPoly, i) = getindex(a.a, i)
+setindex!{T,I<:Integer}(a::ZPoly{T}, v::I, i) = setindex!(a.a, convert(T, v), i)
 setindex!{T}(a::ZPoly{T}, v::T, i) = setindex!(a.a, v, i)
 length(a::ZPoly) = length(a.a)
-endof(a::ZPoly) = length(a)
-start(::ZPoly) = 1
-done(a::ZPoly, i) = i > length(a)
-next(a::ZPoly, i) = (a[i], i+1)
 
 show_int{N,I<:Integer}(io::IO, z::ZModN{N,I}) = show(io, convert(I, z))
 show_int{I<:Integer}(io::IO, i::I) = show(io, convert(I, i))
@@ -519,8 +520,9 @@ promote_rule{U<:Unsigned}(::Type{GF2Poly{U}}, ::Type{Int}) = GF2Poly{U}
 # promote to ZPoly mainly for equality tests (convert below)
 promote_rule{U<:Unsigned,I<:Integer}(::Type{GF2Poly{U}}, ::Type{ZPoly{ZField{2,I}}}) = ZPoly{ZField{2,I}}
 
-
-# TODO - getindex etc?
+# no setindex! as immutable
+getindex{U<:Unsigned}(a::GF2Poly{U}, i) = a.i & (one(U) << (i-1)) == 0 ? GF2(0) : GF2(1)
+length{U<:Unsigned}(a::GF2Poly{U}) = 8 * sizeof(U) - leading_zeros(a.i)
 
 # for display we first convert to to ZPoly.  this is not efficient,
 # but we probably need theinterop anyway, and who cares if printing is
