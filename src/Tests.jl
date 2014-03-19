@@ -145,10 +145,10 @@ end
 
 function test_p_constructor()
 
-    x = ZP([GF2(1), GF2(0)])
-    @assert ZP([GF2(1), GF2(0), GF2(1), GF2(0)]) == x^3 + x
+    x = ZP(GF2(1), GF2(0))
+    @assert ZP(GF2(1), GF2(0), GF2(1), GF2(0)) == x^3 + x
     x = X(ZF(5))
-    @assert ZP([ZF(5,2), ZF(5,3), ZF(5,4)]) == 2x^2 + 3x + 4
+    @assert ZP(ZF(5,2), ZF(5,3), ZF(5,4)) == 2x^2 + 3x + 4
     x = X(ZField{3, Int})
     @assert x + 1 == ZP([ZF(3,1), ZF(3,1)])
     @assert x + 1 == ZP(ZF(3,1), ZF(3,1))
@@ -157,12 +157,12 @@ function test_p_constructor()
 
     x = X(GF2)
     @assert ZP(GF2, 1, 1, 0) == x^2 + x
-    @assert ZP(ZF(2), [1, 1, 0]) == x^2 + x
-    @assert ZP(ZField{2,Int}, [1, 1, 0]) == x^2 + x
+    @assert ZP(ZF(2), [0, 1, 1]) == x^2 + x
+    @assert ZP(ZField{2,Int}, [0, 1, 1]) == x^2 + x
 
     p = x^2 + x
-    @assert IntModN.encode_factor(p) == (1, 1, 0)
-    @assert IntModN.decode_factor(ZPoly{ZField{2,Int}}, (1, 1, 0)) == p
+    @assert IntModN.encode_factor(p) == (0, 1, 1)
+    @assert IntModN.decode_factor(ZPoly{ZField{2,Int}}, (0, 1, 1)) == p
 
     println("test_p_constructor ok")
 end
@@ -170,6 +170,7 @@ end
 function test_p_show()
 
     x = X(Int)
+    println(3x^2 + 1)
     @assert string(3x^2 + 1) == "3x^2 + 1"
     @assert sprint(show, 3x^2 + 1) == "ZP(Int64,3,0,1)"
 
@@ -319,6 +320,7 @@ function test_p2_arithmetic()
     a = x^3 + x^2 + 1
     b = x^2 + 1
     p, q = divrem(a, b)
+    @assert p*b+q == a
     @assert string(p * b + q) == "x^3 + x^2 + 1 mod 2"
 
     p1 = x^5 + x^4 + x^3 + x^2     + 1 

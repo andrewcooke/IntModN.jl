@@ -10,7 +10,7 @@ import Base: promote_rule, convert
 export tests
 
 
-convert{T}(::Type{ZPoly{T}}, p::Poly{T}) = ZP(p.a)
+convert{T}(::Type{ZPoly{T}}, p::Poly{T}) = ZP(reverse(p.a))
 # cannot use promotion with poly as not a Number
 =={T}(a::ZPoly{T}, b::Poly{T}) = a == convert(ZPoly{T}, b)
 =={T}(a::Poly{T}, b::ZPoly{T}) = convert(ZPoly{T}, a) == b
@@ -23,7 +23,7 @@ function make_random(deg, modulus)
     T = ZField{modulus,Int}
     a = rand!(T, Array(T, rand(0:deg+1)))
     p = ZP(a)
-    p, Poly(a)
+    p, Poly(reverse(a))
 end
 
 function make_randoms(n, deg, modulus)
@@ -38,7 +38,7 @@ function make_random2(deg)
     T = ZField{2,Int}
     a = rand!(T, Array(T, rand(0:deg+1)))
     p = ZP(a)
-    convert(GF2Poly{Uint}, p), p, Poly(a)
+    convert(GF2Poly{Uint}, p), p, Poly(reverse(a))
 end
 
 function make_randoms2(n, deg)

@@ -20,7 +20,7 @@ module IntModN
 
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule, length, getindex, setindex!, start, done, next,
-       rand, rand!, print, map, leading_zeros, divrem
+       rand, rand!, print, map, leading_zeros, divrem, endof
 
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
@@ -217,27 +217,29 @@ next(a::PModN, i) = (a[i], i+1)
 
 immutable ZPoly{I<:Integer} <: PModN
     a::Vector{I}
-    ZPoly(a) = length(a) == 0 || a[1] != zero(I) ? new(a) : error("zero leading coeff")
+    ZPoly(a) = length(a) == 0 || a[end] != zero(I) ? new(a) : error("zero leading coeff")
 end
 
 # constructors
 
 function prepare_p{N}(coeffs::Vector{N})
-    start = 1
-    while start <= length(coeffs) && coeffs[start] == zero(N)
-        start += 1
+    start = endof(coeffs)
+    while start > 0 && coeffs[start] == zero(N)
+        start -= 1
     end
-    start == 1 ? coeffs : coeffs[start:end]
+    start == endof(coeffs) ? coeffs : coeffs[1:start]
 end
 
 ZP() = error("provide at least one (zero?) coeff")
 ZP(c::Function) = error("provide at least one (zero?) coeff")
+# the vector constructors are in storage order
 ZP(t::Type, coeffs::Vector) = ZP(t[map(c -> convert(t, c), coeffs)...])
-ZP(t::Type, coeffs...) = ZP(t[map(c -> convert(t, c), coeffs)...])
 ZP(c::Function, coeffs::Vector) = ZP(map(c, coeffs))
-ZP(c::Function, coeffs...) = ZP([map(c, coeffs)...])
 ZP{I<:Integer}(coeffs::Vector{I}) = ZPoly{I}(prepare_p(coeffs))
-ZP{I<:Integer}(coeffs::I...) = ZP([coeffs...])
+# the direct (tuple) constructors are in natural order
+ZP(t::Type, coeffs...) = ZP(reverse(t[map(c -> convert(t, c), coeffs)...]))
+ZP(c::Function, coeffs...) = ZP(reverse([map(c, coeffs)...]))
+ZP{I<:Integer}(coeffs::I...) = ZP(reverse([coeffs...]))
 
 # needed below to squeeze polynomial into type
 # not via convert as we don't know type (length of tuple).  
@@ -247,8 +249,8 @@ decode_factor{I<:Integer}(::Type{ZPoly{I}}, t::Tuple) = ZPoly{I}([map(i -> conve
 
 # nice syntax for creating polynomials.
 # use x=X(ZF(2)) or x=X(GF2) or x=X(ZField{2,Int}) and then x^2+3 etc
-X(c::Function) = ZP([c(1), c(0)])
-X{I<:Integer}(::Type{I}) = ZP([one(I), zero(I)])
+X(c::Function) = ZP([c(0), c(1)])
+X{I<:Integer}(::Type{I}) = ZP([zero(I), one(I)])
 
 modulus{T}(::ZPoly{T}) = modulus(T)
 modulus{T}(::Type{ZPoly{T}}) = modulus(T)
@@ -261,36 +263,34 @@ convert{I<:Integer}(::Type{ZPoly{I}}, i::Integer) = ZP([convert(I, i)])
 # can be accessed and modified (but don't do that in public) as arrays
 getindex(a::ZPoly, i) = getindex(a.a, i)
 setindex!{T,I<:Integer}(a::ZPoly{T}, v::I, i) = setindex!(a.a, convert(T, v), i)
-setindex!{T}(a::ZPoly{T}, v::T, i) = setindex!(a.a, v, i)
 length(a::ZPoly) = length(a.a)
 
 show_int{N,I<:Integer}(io::IO, z::ZModN{N,I}) = show(io, convert(I, z))
 show_int{I<:Integer}(io::IO, i::I) = show(io, convert(I, i))
-print_mode{Z<:ZModN}(io::IO, p::ZPoly{Z}) = print(io, " mod $(modulus(Z))")
-print_mode{I<:Integer}(io::IO, p::ZPoly{I}) = nothing
+print_mod{Z<:ZModN}(io::IO, p::ZPoly{Z}) = print(io, " mod $(modulus(Z))")
+print_mod{I<:Integer}(io::IO, p::ZPoly{I}) = nothing
 
 function print_no_mod{I<:Integer}(io::IO, p::ZPoly{I})
     n = length(p)
     if n <= 0
         show_int(io, zero(I))
     else
-        for j = 1:n
+        for j = n:-1:1
             pj = p[j]
             if pj != zero(I)
-                if j == 1 
+                if j == n
                     pj < 0 && print(io, "-")
                 else
                     pj < 0 ? print(io," - ") : print(io," + ")
                 end
                 magpj = abs(pj)
-                if j == n || magpj != one(I)
+                if j == 1 || magpj != one(I)
                     show_int(io, magpj)
                 end
-                exp = n-j
-                if exp > 0
+                if j > 1
                     print(io, :x)
-                    if exp > 1
-                        print(io, '^', exp)
+                    if j > 2
+                        print(io, '^', j-1)
                     end
                 end
             end
@@ -300,12 +300,12 @@ end
 
 function print{I<:Integer}(io::IO, p::ZPoly{I})
     print_no_mod(io, p)
-    print_mode(io, p)
+    print_mod(io, p)
 end
 
 function show{I<:Integer}(io::IO, p::ZPoly{I})
     print(io, "ZP($I")
-    for i in 1:length(p)
+    for i in length(p):-1:1
         print(io, ",")
         show_int(io, p[i])
     end
@@ -328,7 +328,7 @@ function cmp{T}(a::ZPoly{T}, b::ZPoly{T}, eq)
     elseif length(a) > length(b)
         false
     else
-        for i in 1:length(a)
+        for i in length(a):-1:1
             if a[i] < b[i]
                 return true
             elseif a[i] > b[i]
@@ -343,19 +343,18 @@ end
 
 -{T}(a::ZPoly{T}) = ZPoly{T}(-a.a)
 
-# a and b same lengthl discard leading zeroes
+# a and b same length; discard leading zeroes
 function _truncate{T}(f, a::Vector{T}, b::Vector{T})
     ZERO, la = zero(T), length(a)
     copied = false
-    for i in 1:la
+    for i in la:-1:1
         x::T = f(a[i], b[i])
         if x != ZERO && !copied
-            result = Array(T, la - i + 1)
-            shift = 1-i
+            result = Array(T, i)
             copied = true
         end
         if copied
-            result[i+shift] = x
+            result[i] = x
         end
     end
     if !copied
@@ -366,14 +365,13 @@ end
 
 # big longer than small; copy extra values
 function _skip{T}(f, big::Vector{T}, small::Vector{T})
-    lb = length(big)
-    d = lb - length(small)
+    lb, ls = length(big), length(small)
     result = Array(T, lb)
-    for i in 1:d
+    for i in lb:-1:(ls+1)
         result[i] = big[i]
     end
-    for i in d+1:lb
-        result[i] = f(big[i], small[i-d])
+    for i in ls:-1:1
+        result[i] = f(big[i], small[i])
     end
     result
 end
@@ -408,12 +406,11 @@ function -{T}(a::ZPoly{T}, b::ZPoly{T})
         # coeffs must be negated.  so there's no chance to truncate
         # and we cannot shift past the start.  so do it here.
         result = Array(T, lb)
-        d = lb - la
-        for i = 1:d
+        for i = lb:-1:(la+1)
             result[i] = -b.a[i]
         end
-        for i = 1:la
-            result[i+d] = a[i] - b[i+d]
+        for i = la:-1:1
+            result[i] = a[i] - b[i]
         end
         ZPoly{T}(result)
     end
@@ -454,10 +451,12 @@ function _divrem{T}(a::Vector{T}, b::Vector{T})
         shift = la - lb  # non-negative
         rem, div = copy(a), zeros(T, shift + 1)
         for s in 0:shift
-            factor = rem[s+1] / b[1]
-            div[s+1] = factor
-            for i in 1:lb
-                rem[s+i] -= factor * b[i]
+            factor = rem[end-s] / b[end]
+            if factor != zero(T)
+                div[end-s] = factor
+                for i in 1:lb
+                    rem[i+shift-s] -= factor * b[i]
+                end
             end
         end
         div, rem
@@ -479,8 +478,8 @@ degree{T}(a::ZPoly{T}) = length(a) - 1
 
 function same_length{T}(a::Vector{T}, b::Vector{T})
     big, small = length(a) > length(b) ? (a, b) : (b, a)
-    shift = length(big) - length(small)
-    small = vcat(zeros(T, shift), small)
+    pad = length(big) - length(small)
+    small = vcat(small, zeros(T, pad))
     big, small
 end
 
@@ -525,22 +524,21 @@ getindex{U<:Unsigned}(a::GF2Poly{U}, i) = a.i & (one(U) << (i-1)) == 0 ? GF2(0) 
 length{U<:Unsigned}(a::GF2Poly{U}) = 8 * sizeof(U) - leading_zeros(a.i)
 
 # for display we first convert to to ZPoly.  this is not efficient,
-# but we probably need theinterop anyway, and who cares if printing is
-# efficient?
+# but we probably need the interop anyway, and who cares if printing
+# is efficient?
 
 convert{I<:Integer, U<:Unsigned}(::Type{ZPoly{ZField{2,I}}}, p::GF2Poly{U}) = _convert(ZPoly{ZField{2,I}}, p)
 convert{I<:Integer, U<:Unsigned}(::Type{GF2Poly{U}}, p::ZPoly{ZField{2,I}}) = _convert(GF2Poly{U}, p)
 convert{U<:Unsigned}(::Type{GF2Poly{U}}, p::GF2Poly{U}) = p
 
 function _convert{T, F}(::Type{T}, from::F)
-    result, mask, x = zero(T), one(T), one(T) << 1
-    none = zero(F)
-    while from != none
-        if from & 1 != none
-            result |= mask
+    result, mask = zero(T), one(T)
+    for _ in 1:length(from)
+        if from & one(F) != zero(F)
+            result += mask
         end
-        mask <<= 1
         from >>>= 1
+        mask <<= 1
     end
     result
 end
