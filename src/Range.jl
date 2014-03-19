@@ -33,11 +33,14 @@ done{S,I,E}(r::TypedRange{S,I,E}, i::Int) = I > 0 ? i >= E : i <= E
 #getindex{S,I,E}(::TypedRange{S,I,E}, i::Int) = S + I * (i - 1)
 
 function count(s, i, e; display=true)
+    n = 0
     for i in s:i:e
         if display
             println(i)
         end
+        n += i
     end
+    n
 end
 
 # demo
@@ -57,5 +60,9 @@ n = 1 << 20
 # elapsed time: 0.000323335 seconds (128 bytes allocated)
 
 # so this idea results in a 300x slowdown.
+
+# strangely these give identical outputs
+code_native(count, (MyInt, MyInt, MyInt))
+code_native(count, (Int, Int, Int))
 
 end
