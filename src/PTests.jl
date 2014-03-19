@@ -71,13 +71,18 @@ function do_timing(n, deg)
         end
     end
 
+    srand(1)
     a, T = make_randoms2(n, deg)
+    println("\nfirst poly: ", a[1][1])
     for op in (+, -, *, /, %)
 #    for op in (/, %)
         println("\n$op")
         for idx in 1:3
+            gc()
+            gc_disable()
 #            print("$(T[idx]): ")
             @time test_op(a, idx, op, T)
+            gc_enable()
         end
     end
 end
@@ -136,7 +141,7 @@ end
 
 
 function tests()
-    do_timing(300, 8)
+    do_timing(1000, 8)
     do_eq(30, 2)
 end
 

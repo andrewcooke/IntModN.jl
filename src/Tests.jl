@@ -237,17 +237,16 @@ end
 function test_p_array()
 
     x = X(GF2)
-    p = x^2 + 1
-    p[2] = 1
-    @assert p == x^2 + x + 1
-    @assert p[1] == GF2(1)
+    p = x^2 + x
+    @assert p[2] == GF2(1)
+    @assert p[1] == GF2(0)
     @assert length(p) == 3
 
     count = 0
     for (i, a) in enumerate(p)
         count = count + 1
         @assert 0 < i < 4
-        @assert a == GF2(1)
+        @assert (i == 1 && a == GF2(0)) || (i != 1 && a == GF2(1))
     end
     @assert count == 3
 
@@ -343,15 +342,16 @@ end
 function test_p2_array()
 
     x = GF2X()
-    p = x^2 + 1
-    @assert p[1] == GF2(1)
+    p = x^2 + x
+    @assert p[2] == GF2(1)
+    @assert p[1] == GF2(0)
     @assert length(p) == 3
 
     count = 0
     for (i, a) in enumerate(p)
         count = count + 1
         @assert 0 < i < 4
-        @assert (i == 2 && a == GF2(0)) || (i != 2 && a == GF2(1))
+        @assert (i == 1 && a == GF2(0)) || (i != 1 && a == GF2(1))
     end
     @assert count == 3
 

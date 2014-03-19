@@ -600,7 +600,7 @@ function divrem{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
             factor = ONE << shift
             b = b << shift  # no overflow (b *= factor)
             mask = ONE << (8 * sizeof(U) - leading_zeros(rem) - 1)  # msb(rem)
-            for _ in 0:shift
+            for _ in shift:-1:0
                 if rem & mask != ZERO
                     div += factor
                     rem -= b
