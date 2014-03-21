@@ -66,8 +66,8 @@ n = 1 << 20
 #println(code_typed(count, (Int, Int, Int)))
 #code_native(count, (Int, Int, Int))
 #code_llvm(count, (Int, Int, Int))
-#println(code_typed(count_type, (TypedRange{Int, Int, Int},)))
-#code_native(count_type, (TypedRange{Int, Int, Int},))
-#code_llvm(count_type, (TypedRange{Int, Int, Int},))
+println(code_typed(count_type, (TypedRange{10,-1,1},)))
+code_native(count_type, (TypedRange{10,-1,1},))
+code_llvm(count_type, (TypedRange{10,-1,1},))
 
 end
