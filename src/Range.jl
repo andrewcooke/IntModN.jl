@@ -32,37 +32,42 @@ done{S,I,E}(r::TypedRange{S,I,E}, i::Int) = I > 0 ? i >= E : i <= E
 #isempty{S,I,E}(r::TypedRange{S,I,E}) = (I > 0 && S > E) || (I < 0 && S < E)
 #getindex{S,I,E}(::TypedRange{S,I,E}, i::Int) = S + I * (i - 1)
 
-function count(s, i, e; display=true)
+function count(s, i, e)
     n = 0
     for i in s:i:e
-        if display
-            println(i)
-        end
         n += i
     end
-    n
+    return n
+end
+
+function count_type{S,I,E}(r::TypedRange{S,I,E})
+    n = 0
+    for i in r
+        n += i
+    end
+    return n
 end
 
 # demo
-count(MyInt(10), MyInt(-1), MyInt(1))
-count(10, -1, 1)
+@assert count(MyInt(10), MyInt(-1), MyInt(1)) == 55
+@assert count(10, -1, 1) == 55
+@assert count_type(colon(MyInt(10), MyInt(-1), MyInt(1))) == 55
 
 # warm up the jit
-count(MyInt(10), MyInt(-1), MyInt(1); display=false)
-count(10, -1, 1; display=false)
+count(MyInt(10), MyInt(-1), MyInt(1))
+count(10, -1, 1)
+count_type(colon(MyInt(10), MyInt(-1), MyInt(1)))
 
 n = 1 << 20
-@time count(MyInt(n), MyInt(-1), MyInt(1); display=false)
-@time count(n, -1, 1; display=false)
+@time count(MyInt(n), MyInt(-1), MyInt(1))
+@time count(n, -1, 1)
+@time count_type(colon(MyInt(n), MyInt(-1), MyInt(1)))
 
-# typical output
-# elapsed time: 0.104878996 seconds (67153608 bytes allocated)
-# elapsed time: 0.000323335 seconds (128 bytes allocated)
-
-# so this idea results in a 300x slowdown.
-
-# strangely these give identical outputs
-code_native(count, (MyInt, MyInt, MyInt))
-code_native(count, (Int, Int, Int))
+#println(code_typed(count, (Int, Int, Int)))
+#code_native(count, (Int, Int, Int))
+#code_llvm(count, (Int, Int, Int))
+#println(code_typed(count_type, (TypedRange{Int, Int, Int},)))
+#code_native(count_type, (TypedRange{Int, Int, Int},))
+#code_llvm(count_type, (TypedRange{Int, Int, Int},))
 
 end
