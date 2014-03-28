@@ -228,8 +228,9 @@ end
 function test_p_bitwise()
     @assert ZP(3, 2, 1) & ZP(1, 1, 1) == ZP(1, 0, 1)
     @assert ZP(3, 2, 1) | ZP(1, 1) == ZP(3, 3, 1)
-
     @assert ZP(GF2(0), GF2(0)) $ ZP(GF2(1)) == ZP(GF2(0), GF2(1))    
+    @assert ZP(1, 0) << 2 == ZP(1, 0, 0, 0)
+    @assert ZP(1, 0) >>> 1 == ZP(1)
 
     println("test_p_bitwise")
 end
@@ -335,6 +336,8 @@ function test_p2_bitwise()
     @assert GF2P(0x5) & GF2P(0x7) == GF2P(0x5)
     @assert GF2P(0x5) | GF2P(0x3) == GF2P(0x7)
     @assert GF2P(0x0) $ GF2P(0x1) == GF2P(0x1)
+    @assert GF2P(0x2) << 2 == GF2P(0x8)
+    @assert GF2P(0x2) >>> 1 == GF2P(0x1)
 
     println("test_p2_bitwise")
 end

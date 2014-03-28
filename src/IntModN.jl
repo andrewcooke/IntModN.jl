@@ -487,9 +487,8 @@ map{P<:ZPoly}(f::Function, a::P, b::P) = ZP(map(f, same_length(a.a, b.a)...))
 for op in (:&, :|, :$)
     @eval $op{P<:ZPoly}(a::P, b::P) = map($op, a, b)
 end
-# TODO - more efficient
-<<{T}(a::ZPoly{T}, n::Int) = a * X(T)^n
->>>{T}(a::ZPoly{T}, n::Int) = a / X(T)^n
+<<{T}(a::ZPoly{T}, n::Int) = ZPoly{T}(vcat(zeros(T, n), a.a))
+>>>{T}(a::ZPoly{T}, n::Int) = ZPoly{T}(a.a[n+1:end])
 
 
 
@@ -556,8 +555,8 @@ one{U<:Unsigned}(::GF2Poly{U}) = GF2P(one(U))
 for (name, op) in ((:+, :$), (:-, :$), (:|, :|), (:&, :&), (:$, :$))
     @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = GF2Poly{U}($op(a.i, b.i))
 end
-for (name, op) in ((:(==), :(==)), (:<=, :<=), (:<, :<))
-    @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = $op(a.i, b.i)
+for op in (:(==), :<=, :<)
+    @eval $op{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = $op(a.i, b.i)
 end
 <<{U<:Unsigned}(a::GF2Poly{U}, n::Int) = GF2Poly(a.i << n)
 >>>{U<:Unsigned}(a::GF2Poly{U}, n::Int) = GF2Poly(a.i >>> n)
