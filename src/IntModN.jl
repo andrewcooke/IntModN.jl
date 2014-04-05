@@ -683,16 +683,18 @@ inv{F<:FRing}(f::F) = FR(extended_euclidean(f.p, factor(f)), factor(f))
 
 
 # TODO - try include (relative path) here
+# TODO - move to Pkg.test etc
 
-d = Pkg.dir("IntModN")
-d = "$d/src"
-push!(LOAD_PATH, d)
-import Tests
-import PTests
-function tests()
-    Tests.tests()
-    PTests.tests()
-end
-pop!(LOAD_PATH)
+#d = Pkg.dir("IntModN")
+#d = "$d/src"
+#push!(LOAD_PATH, d)
+#import Tests
+#import PTests
+#pop!(LOAD_PATH)
+#
+#function tests()
+#    Tests.tests()
+#    PTests.tests()
+#end
 
 end
