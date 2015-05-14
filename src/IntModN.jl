@@ -77,8 +77,8 @@ end
 # but typically you would use one of these constructors (ZF or ZR)
 
 function prepare_z{I<:Integer}(n::Int, i::I)
-    @assert n > 0 "modulus ($n) too small"
-    @assert n <= typemax(typeof(i)) "modulus ($n) too large for $(typeof(i))"
+    n > 0 || error("modulus ($n) too small")
+    n <= typemax(typeof(i)) || error("modulus ($n) too large for $(typeof(i))")
     mod(i, n)
 end
 
@@ -163,7 +163,7 @@ function extended_euclidean{I<:Integer}(a::I, n::I)
         t, newt = newt, t - q * newt
         r, newr = newr, r - q * newr
     end
-    @assert r <= 1 "$a is not invertible mod $n"
+    r <= 1 || error("$a is not invertible mod $n")
     t < 0 ? t + n : t
 end
 
@@ -438,7 +438,7 @@ end
 
 function _divrem{T}(a::Vector{T}, b::Vector{T})
     la, lb = length(a), length(b)
-    @assert lb > 0 "division by zero polynomial"
+    lb > 0 || error("division by zero polynomial")
     if la == 0
         (a, a)
     elseif lb == 1 && b[1] == one(T)
@@ -583,7 +583,7 @@ end
 
 function divrem{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
     ONE, ZERO = one(GF2Poly{U}), zero(GF2Poly{U})
-    @assert b != ZERO "division by zero polynomial"
+    b != ZERO || error("division by zero polynomial")
     if a == ZERO
         (a, a)
     elseif b == ONE
