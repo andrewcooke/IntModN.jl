@@ -140,7 +140,7 @@ end
 #do_eq(30, 8)
 
 
-function tests()
+function ptests()
     do_timing(1000, 8)
     do_eq(30, 2)
 end
