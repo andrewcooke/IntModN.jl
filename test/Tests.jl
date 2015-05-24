@@ -283,7 +283,8 @@ function test_p2_show()
 
     x = GF2X(Uint)
     @assert string(3x^2 + 1) == "x^2 + 1 mod 2"
-    @assert sprint(show, 3x^2 + 1) == "GF2Poly{UInt64}(5)"
+    @assert sprint(show, 3x^2 + 1) in 
+    ("GF2Poly{UInt64}(5)", "GF2Poly{Uint64}(5)")
 
     println("test_p2_show ok")
 end
