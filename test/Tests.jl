@@ -170,13 +170,13 @@ end
 function test_p_show()
 
     x = X(Int)
-    println(3x^2 + 1)
     @assert string(3x^2 + 1) == "3x^2 + 1"
     @assert sprint(show, 3x^2 + 1) == "ZP(Int64,3,0,1)"
 
     x = X(ZF(5))
     @assert string(3x^2 + 1) == "3x^2 + 1 mod 5"
-    @assert sprint(show, 3x^2 + 1) == "ZP(ZField{5,Int64},3,0,1)"
+    @assert sprint(show, 3x^2 + 1) in 
+    ("ZP(ZField{5,Int64},3,0,1)", "ZP(IntModN.ZField{5,Int64},3,0,1)")
     
     println("test_p_show ok")
 end
@@ -283,7 +283,7 @@ function test_p2_show()
 
     x = GF2X(Uint)
     @assert string(3x^2 + 1) == "x^2 + 1 mod 2"
-    @assert sprint(show, 3x^2 + 1) == "GF2Poly{Uint64}(5)"
+    @assert sprint(show, 3x^2 + 1) == "GF2Poly{UInt64}(5)"
 
     println("test_p2_show ok")
 end
@@ -378,7 +378,9 @@ function test_f_constructor()
     x = X(GF2)
     f = FR(x^3 + x^2, x^2 + 1)
     @assert string(f) == "x + 1 mod x^2 + 1 mod 2"
-    @assert sprint(show, f) == "FR(ZP(ZField{2,Int64},1,1),ZP(ZField{2,Int64},1,0,1))"
+    @assert sprint(show, f) in 
+    ("FR(ZP(ZField{2,Int64},1,1),ZP(ZField{2,Int64},1,0,1))",
+     "FR(ZP(IntModN.ZField{2,Int64},1,1),ZP(IntModN.ZField{2,Int64},1,0,1))")
 
     println("test_f_constructor ok")
 end

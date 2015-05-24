@@ -3,7 +3,7 @@
 
 module PTests
 
-using Polynomial, IntModN
+using Polynomial, IntModN, Compat
 
 import Base: promote_rule, convert
 
@@ -27,11 +27,11 @@ function make_random(deg, modulus)
 end
 
 function make_randoms(n, deg, modulus)
-    a = (ZPoly{ZField{modulus,Int}}, Poly{ZField{modulus,Int}})[]
+    a = @compat Tuple{ZPoly{ZField{modulus,Int}}, Poly{ZField{modulus,Int}}}[]
     for _ in 1:n
         push!(a, make_random(deg, modulus))
     end
-    (a, (ZPoly{ZField{modulus,Int}}, Poly{ZField{modulus,Int}}))
+    (a, @compat Tuple{ZPoly{ZField{modulus,Int}}, Poly{ZField{modulus,Int}}})
 end
 
 function make_random2(deg)
@@ -42,7 +42,7 @@ function make_random2(deg)
 end
 
 function make_randoms2(n, deg)
-    a = (GF2Poly{Uint}, ZPoly{ZField{2,Int}}, Poly{ZField{2,Int}})[]
+    a = @compat Tuple{GF2Poly{Uint}, ZPoly{ZField{2,Int}}, Poly{ZField{2,Int}}}[]
     for _ in 1:n
         push!(a, make_random2(deg))
     end
@@ -93,7 +93,7 @@ end
 function test_eq(a, T, op)
     for i1 in 1:length(a)
         for i2 in 1:length(a)
-            for t1 in 1:length(T)
+            for t1 in 1:length(a[1])  # all same length
                 p1 = a[i1][t1]
                 q1 = a[i2][t1]
                 for x in op
@@ -102,7 +102,7 @@ function test_eq(a, T, op)
                         r1 = x(p1, q1)
                     catch
                     end
-                    for t2 in 1:length(T)
+                    for t2 in 1:length(a[1])
 #                        println("test $i1 $i2 $(T[t1]) $(T[t2]) $x")
                         p2 = a[i1][t2]
                         q2 = a[i2][t2]

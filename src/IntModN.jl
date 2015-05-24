@@ -21,6 +21,7 @@ module IntModN
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule, length, getindex, setindex!, start, done, next,
        rand, rand!, print, map, leading_zeros, divrem, endof
+import Base.Random.AbstractRNG
 
 # Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
 #using TypeCheck
@@ -124,7 +125,6 @@ print{N,I}(io::IO, z::ZModN{N,I}) = print(io, "$(z.i) mod $N")
 show{N,I<:Integer}(io::IO, z::ZField{N,I}) = print(io, "ZField{$N,$I}($(z.i))")
 show{N,I<:Integer}(io::IO, z::ZRing{N,I}) = print(io, "ZRing{$N,$I}($(z.i))")
 
-# the random api for ints is kinda broken in that it doesn't take a generator
 rand{N,I<:Integer}(T::Type{ZRing{N,I}}) = ZR(N, rand(one(I):convert(I,N)))
 rand{N,I<:Integer}(T::Type{ZField{N,I}}) = ZF(N, rand(one(I):convert(I,N)))
 function rand!{T<:ZModN}(::Type{T}, a::AbstractArray)
@@ -135,6 +135,23 @@ function rand!{T<:ZModN}(::Type{T}, a::AbstractArray)
 end
 rand(::Type{ZModN}, dims...) = error("use more specific type")
 rand{T<:ZModN}(::Type{T}, dims...) = rand!(T, Array(T, dims))
+
+if VERSION >= v"0.4-"
+    rand{N,I<:Integer}(rng::AbstractRNG, T::Type{ZRing{N,I}}) = 
+    ZR(N, rand(rng, one(I):convert(I,N)))
+    rand{N,I<:Integer}(rng::AbstractRNG, T::Type{ZField{N,I}}) = 
+    ZF(N, rand(rng, one(I):convert(I,N)))
+    function rand!{T<:ZModN}(rng::AbstractRNG, ::Type{T}, a::AbstractArray)
+        for i in 1:length(a)
+            a[i] = rand(rng, T)
+        end
+        a
+    end
+    rand(rng::AbstractRNG, ::Type{ZModN}, dims::Int...) = 
+    error("use more specific type")
+    rand{T<:ZModN}(rng::AbstractRNG, ::Type{T}, dims::Int...) = 
+    rand!(rng, T, Array(T, dims))    
+end
 
 # equal N from types, so we don't need to test explicitly
 =={N,I}(a::ZModN{N,I}, b::ZModN{N,I}) = a.i == b.i
