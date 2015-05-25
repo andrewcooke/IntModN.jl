@@ -92,6 +92,22 @@ julia> p, q = divrem(a, b)
 julia> @assert a == p * b + q
 ```
 
+And you can also use these with factor rings:
+
+```
+julia> x = GF2X(Uint)
+GF2Poly{UInt64}(2)
+
+julia> rijndael = x^8 + x^4 + x^3 + x + 1
+GF2Poly{UInt64}(283)
+
+julia> print(FR(x^7 + x^6 + x^3 + x, rijndael) * FR(x^6 + x^4 + x + 1, rijndael))
+1 mod x^8 + x^4 + x^3 + x + 1 mod 2
+```
+
+However, note that `rinjdael` here requires 9 bits of storage; there is no
+representation with an implicit msb.
+
 ## Licence
 
 MIT Licence; (c) 2014 Andrew Cooke andrew@acooke.org

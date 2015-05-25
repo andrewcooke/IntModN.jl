@@ -399,6 +399,20 @@ function test_f_rijndael()
     println("test_f_rijndael ok")
 end
 
+function test_f_rijndael2()
+    x = GF2X(Uint64)
+    rij = x^8 + x^4 + x^3 + x + 1
+    a = FR(x^7 + x^6 + x^3 + x, rij)
+    b = FR(x^6 + x^4 + x + 1, rij)
+    o = one(a)
+    @assert a * b == o
+    @assert inv(a) == b
+    @assert o / b == a
+    @assert o / a == b
+
+    println("test_f_rijndael2 ok")
+end
+
 function test_f_inverse()
     x = X(GF2)
     rij = x^8 + x^4 + x^3 + x + 1
@@ -413,6 +427,7 @@ end
 function tests_f()
     test_f_constructor()
     test_f_rijndael()
+    test_f_rijndael2()
     test_f_inverse()
 end
 

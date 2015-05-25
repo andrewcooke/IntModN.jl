@@ -560,6 +560,7 @@ function _convert{T, F}(::Type{T}, from::F)
 end
 
 print{U<:Unsigned}(io::IO, p::GF2Poly{U}) = print(io, convert(ZPoly{ZField{2,Int}}, p))
+print_no_mod{U<:Unsigned}(io::IO, p::GF2Poly{U}) = print_no_mod(io, convert(ZPoly{ZField{2,Int}}, p))
 show{U<:Unsigned}(io::IO, p::GF2Poly{U}) = print(io, "GF2Poly{$U}($(p.i))")
 
 zero{U<:Unsigned}(::Type{GF2Poly{U}}) = GF2P(zero(U))
