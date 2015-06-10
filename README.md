@@ -1,3 +1,8 @@
+[![Build
+Status](https://travis-ci.org/andrewcooke/IntModN.jl.png)](https://travis-ci.org/andrewcooke/IntModN.jl)
+[![Coverage Status](https://coveralls.io/repos/andrewcooke/IntModN.jl/badge.svg)](https://coveralls.io/r/andrewcooke/IntModN.jl)
+[![IntModN](http://pkg.julialang.org/badges/IntModN_release.svg)](http://pkg.julialang.org/?pkg=IntModN&ver=release)
+
 # IntModN.jl
 
 A pragmatic (meaning incomplete, and written by someone who needed
@@ -107,12 +112,3 @@ julia> print(FR(x^7 + x^6 + x^3 + x, rijndael) * FR(x^6 + x^4 + x + 1, rijndael)
 
 However, note that `rinjdael` here requires 9 bits of storage; there is no
 representation with an implicit msb.
-
-## Licence
-
-MIT Licence; (c) 2014 Andrew Cooke andrew@acooke.org
-
-[![Build
-Status](https://travis-ci.org/andrewcooke/IntModN.jl.png)](https://travis-ci.org/andrewcooke/IntModN.jl)
-Julia 0.3 (trunk).
- 
