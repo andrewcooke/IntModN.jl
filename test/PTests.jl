@@ -79,10 +79,10 @@ function do_timing(n, deg)
         println("\n$op")
         for idx in 1:3
             gc()
-            gc_disable()
+            gc_enable(false)
 #            print("$(T[idx]): ")
             @time test_op(a, idx, op, T)
-            gc_enable()
+            gc_enable(true)
         end
     end
 end
