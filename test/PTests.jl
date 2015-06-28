@@ -79,10 +79,18 @@ function do_timing(n, deg)
         println("\n$op")
         for idx in 1:3
             gc()
-            gc_enable(false)
+            if VERSION < v"0.4-"
+                gc_disable()
+            else
+                gc_enable(false)
+            end
 #            print("$(T[idx]): ")
             @time test_op(a, idx, op, T)
-            gc_enable(true)
+            if VERSION < v"0.4-"
+                gc_enable()
+            else
+                gc_enable(true)
+            end
         end
     end
 end
