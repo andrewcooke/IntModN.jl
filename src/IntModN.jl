@@ -23,11 +23,6 @@ import Base: show, showcompact, zero, one, inv, real, abs, convert,
        rand, rand!, print, map, leading_zeros, divrem, endof
 import Base.Random.AbstractRNG
 
-# Pkg.clone("https://github.com/astrieanna/TypeCheck.jl.git")
-#using TypeCheck
-# Pkg.clone("https://github.com/vtjnash/Polynomial.jl")
-#using Polynomial
-
 export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, 
        ZPoly, ZP, X, P, order, modulus, factor, itype,
        GF2Poly, GF2P, GF2X,
@@ -35,7 +30,7 @@ export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield,
        extended_euclidean
 
 
-# we generally support promotion into tyoes here (from integers) and
+# we generally support promotion into types here (from integers) and
 # conversion back.  but that's all.  users can add other promotion /
 # conversion if required.
 
@@ -48,17 +43,17 @@ export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield,
 # but we need an additional type so that we can intercept things like
 # automatic promotion to floats from integers.
 
-abstract IntegerOnly <: Integer
+abstract Residue <: Integer
 
-/{I<:Integer,M<:IntegerOnly}(i::I, m::M) = convert(M, i) / m
-/{I<:Integer,M<:IntegerOnly}(m::M, i::I) = m / convert(M, i)
-inv{M<:IntegerOnly}(m::M) = error("no inverse defined")
+/{I<:Integer,M<:Residue}(i::I, m::M) = convert(M, i) / m
+/{I<:Integer,M<:Residue}(m::M, i::I) = m / convert(M, i)
+inv{M<:Residue}(m::M) = error("no inverse defined")
 
 
 # --- integers modulo n
 
 
-abstract ZModN{N, I<:Integer} <: IntegerOnly
+abstract ZModN{N, I<:Integer} <: Residue
 
 # we need two types here because prime moduli have a faster inverse
 # (via euler's theorem) (note - we do NOT test for primality).
@@ -171,7 +166,7 @@ for Z in (ZRing, ZField)
     end
 end
 
-# http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#IntegerOnly_integers
+# http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Residue_integers
 function extended_euclidean{I<:Integer}(a::I, n::I)
     t::I, newt::I = zero(I), one(I)
     r::I, newr::I = n, a
@@ -214,7 +209,7 @@ end
 
 # --- supertype for all polynomial representations
 
-abstract PModN <: IntegerOnly
+abstract PModN <: Residue
 
 endof(a::PModN) = length(a)
 start(::PModN) = 1
@@ -643,7 +638,7 @@ degree{U<:Unsigned}(p::GF2Poly{U}) = 8*sizeof(U) - leading_zeros(p)
 
 # this all assumes that the factor poynomial is irreducible
 
-abstract FModN{P<:PModN, F} <: IntegerOnly
+abstract FModN{P<:PModN, F} <: Residue
 
 # assumes already reduced
 immutable FRing{P<:PModN, F} <: FModN{P,F}

@@ -14,6 +14,10 @@ the relationships between different structures, but to enable
 arithmetic on various types, motivated largely by the practical needs
 of crypto code.
 
+* [Examples](#examples)
+* [Types](#types)
+  * [Integers Modulo N](#integers-modulo-n)
+
 Incomplete; pull requests welcome.
 
 ## Examples
@@ -112,3 +116,55 @@ julia> print(FR(x^7 + x^6 + x^3 + x, rijndael) * FR(x^6 + x^4 + x + 1, rijndael)
 
 However, note that `rinjdael` here requires 9 bits of storage; there is no
 representation with an implicit msb.
+
+## Types
+
+`Residue <: Integer` - abstract superclass for (almost) everything below.
+Used to provide some common utilities (like automatic promotion from
+integers).
+
+### Integers Modulo N
+
+`ZModN{N,I<:Integer} <: Residue` - abstract superclass for *integers* modulo
+some value, where `N` is the modulus, and so typically an `Int` (yes, that's a
+integer as a *type*, not a value), and `I`
+
+This has two concrete subclasses, because when `N` is a prime number we can do
+more stuff.
+
+`ZRing{N, I<:Integer} <: ZModN{N,I}` - the general case.
+
+`ZField{N, I<:Integer} <: ZModN{N,I}` - assumes that `N` is prime.
+
+These constructors can be used directly, but do not check that arguments are
+consistent with assumptoins made in the code (primality, values within range,
+etc).
+
+The associated functions `ZR()` and `ZF()` are more suitable for "normal" use,
+and include support for factory functions:
+
+```julia
+julia> ZF(3, 5, UInt8)
+ZField{3,UInt8}(2)
+
+julia> ZF(3, 5)
+ZField{3,Int64}(2)
+
+julia> GF3 = ZF(3)
+(anonymous function)
+
+julia> GF3(5)
+ZField{3,Int64}(2)
+```
+
+The macros `@zring` and `@zfield` can also be used to convert all integers
+with scope:
+
+```julia
+julia> @zring 4 begin
+          A = [1 2 3 4 5]
+       end
+1x5 Array{IntModN.ZRing{4,Int64},2}:
+ 1  2  3  0  1
+```
+`
