@@ -17,6 +17,10 @@ of crypto code.
 * [Examples](#examples)
 * [Types](#types)
   * [Integers Modulo N](#integers-modulo-n)
+  * [Polynomials](#polynomials)
+    * [Polynomials with Integral Coefficients](#polynomials-with-integral-coefficients)
+    * [Polynomials over GF(2)](#polynomials-over-gf-2)
+	
 
 Incomplete; pull requests welcome.
 
@@ -125,23 +129,24 @@ integers).
 
 ### Integers Modulo N
 
-`ZModN{N,I<:Integer} <: Residue` - abstract superclass for *integers* modulo
+`ZModN{N,I<:Integer} <: Residue` - abstract superclass for integers modulo
 some value, where `N` is the modulus, and so typically an `Int` (yes, that's a
 integer as a *type*, not a value), and `I`
 
-This has two concrete subclasses, because when `N` is a prime number we can do
-more stuff.
+This has two concrete subclasses, because when `N` is a prime number we can
+define a multiplicative inverse.
 
 `ZRing{N, I<:Integer} <: ZModN{N,I}` - the general case.
 
-`ZField{N, I<:Integer} <: ZModN{N,I}` - assumes that `N` is prime.
+`ZField{N, I<:Integer} <: ZModN{N,I}` - assumes that `N` is prime, and so
+includes division.
 
 These constructors can be used directly, but do not check that arguments are
-consistent with assumptoins made in the code (primality, values within range,
-etc).
+consistent with assumptions made in the code (values within range, etc).
 
-The associated functions `ZR()` and `ZF()` are more suitable for "normal" use,
-and include support for factory functions:
+The associated functions `ZR()` and `ZF()` are more suitable for "normal" use
+(but still do not check primality for fields), and include support for factory
+functions:
 
 ```julia
 julia> ZF(3, 5, UInt8)
@@ -167,4 +172,40 @@ julia> @zring 4 begin
 1x5 Array{IntModN.ZRing{4,Int64},2}:
  1  2  3  0  1
 ```
-`
+
+### Polynomials
+
+`Poly <: Residue` - abstract superclass for polynomials.  All share some basic
+conventions about accessing coefficients (with `[]`) and iterators.
+
+Note: Originally, the code used
+[Polynomial.jl](https://github.com/vtjnash/Polynomial.jl), but that had some
+weird design decisions so I wrote my own code.  Since then,
+[Polynomials.jl](https://github.com/Keno/Polynomials.jl) fixed some of the
+issues, so at some point it may make sense to revert to that package.
+
+#### Polynomials With Integral Coefficients
+
+`ZPoly{I<:Integer} <: Poly` - a simple wrapper around an array of integral
+coefficients (including `ZModN` subclasses).  The coefficients are in the
+"usual" order, so `[i]` gives the ith coefficient, and the leading coefficient
+is always non-zero (or the array is empty).
+
+As with integers mod N, the constructor can be used directly, but it is
+generally preferable to use `ZP()`, which has various forms.
+
+In addition, there's support for the natural syntax `x^n...` via `X()`:
+
+```julia
+julia> x = X(ZF(2))
+ZP(IntModN.ZField{2,Int64},1,0)
+
+julia> x^3 + x
+ZP(IntModN.ZField{2,Int64},1,0,1,0)
+```
+
+#### Polynomials over GF(2)
+
+`GF2Poly{I<:Unsigned} <: Poly` - specialized support for polynomials over
+GF(2).  Coefficients can be only 0 or 1, so we can use bit fields (integers)
+for their values.

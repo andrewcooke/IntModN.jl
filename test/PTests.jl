@@ -3,7 +3,7 @@
 
 module PTests
 
-using Polynomial, IntModN, Compat
+using Polynomial, IntModN, Compat, Base.Test
 
 import Base: promote_rule, convert
 
@@ -125,7 +125,7 @@ function test_eq(a, T, op)
                             println("($p2) $x ($q2)")
                             println("r2  $(typeof(r2))  $(r2)")
                         end
-                        @assert r1 == r2
+                        @test r1 == r2
                     end
                 end
             end

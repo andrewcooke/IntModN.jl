@@ -209,12 +209,12 @@ end
 
 # --- supertype for all polynomial representations
 
-abstract PModN <: Residue
+abstract Poly <: Residue
 
-endof(a::PModN) = length(a)
-start(::PModN) = 1
-done(a::PModN, i) = i > length(a)
-next(a::PModN, i) = (a[i], i+1)
+endof(a::Poly) = length(a)
+start(::Poly) = 1
+done(a::Poly, i) = i > length(a)
+next(a::Poly, i) = (a[i], i+1)
 
 
 # --- arbitrary (but "integer") coeff polynomials
@@ -227,7 +227,7 @@ next(a::PModN, i) = (a[i], i+1)
 # contents unless you have a new instance whose contents you know to be
 # owned.
 
-immutable ZPoly{I<:Integer} <: PModN
+immutable ZPoly{I<:Integer} <: Poly
     a::Vector{I}
     ZPoly(a) = length(a) == 0 || a[end] != zero(I) ? new(a) : error("zero leading coeff")
 end
@@ -507,7 +507,7 @@ end
 # --- GF(2) polynomials encoded as bits
 
 
-immutable GF2Poly{I<:Unsigned} <: PModN
+immutable GF2Poly{I<:Unsigned} <: Poly
     i::I
 end
 
@@ -638,29 +638,29 @@ degree{U<:Unsigned}(p::GF2Poly{U}) = 8*sizeof(U) - leading_zeros(p)
 
 # this all assumes that the factor poynomial is irreducible
 
-abstract FModN{P<:PModN, F} <: Residue
+abstract FModN{P<:Poly, F} <: Residue
 
 # assumes already reduced
-immutable FRing{P<:PModN, F} <: FModN{P,F}
+immutable FRing{P<:Poly, F} <: FModN{P,F}
     p::P
 end
 
-function prepare_f{P<:PModN}(p::P, f::P)
+function prepare_f{P<:Poly}(p::P, f::P)
     p % f
 end
 
-FR{P<:PModN}(p::P, f::P) = FRing{P, encode_factor(f)}(prepare_f(p, f))
+FR{P<:Poly}(p::P, f::P) = FRing{P, encode_factor(f)}(prepare_f(p, f))
 
-factor{P<:PModN, F}(::Type{FRing{P, F}}) = decode_factor(P, F)
-factor{P<:PModN, F}(::FRing{P, F}) = factor(FRing{P, F})
-modulus{P<:PModN, F}(::Type{FModN{P,F}}) = modulus(P)
+factor{P<:Poly, F}(::Type{FRing{P, F}}) = decode_factor(P, F)
+factor{P<:Poly, F}(::FRing{P, F}) = factor(FRing{P, F})
+modulus{P<:Poly, F}(::Type{FModN{P,F}}) = modulus(P)
 modulus{F<:FModN}(::F) = modulus(F)
 # assuming irreducible factor
 order{F<:FModN}(::Type{F}) = modulus(F) ^ degree(factor(F)) - 1
 order{F<:FModN}(::F) = order(F)
 
-zero{P<:PModN, F}(::Type{FRing{P, F}}) = FR(zero(P), decode_factor(P, F))
-one{P<:PModN, F}(::Type{FRing{P, F}}) = FR(one(P), decode_factor(P, F))
+zero{P<:Poly, F}(::Type{FRing{P, F}}) = FR(zero(P), decode_factor(P, F))
+one{P<:Poly, F}(::Type{FRing{P, F}}) = FR(one(P), decode_factor(P, F))
 zero{F<:FModN}(f::F) = zero(F)
 one{F<:FModN}(f::F) = one(F)
 
@@ -689,25 +689,5 @@ liftf{F<:FRing}(f, a::F, b::F) = FR(f(a.p, b.p), factor(F))
 
 inv{F<:FRing}(f::F) = FR(extended_euclidean(f.p, factor(f)), factor(f))
 /{F<:FRing}(a::F, b::F) = a * inv(b)
-
-
-
-# --- pull in tests (does this need ot be so ugly?)
-
-
-# TODO - try include (relative path) here
-# TODO - move to Pkg.test etc
-
-#d = Pkg.dir("IntModN")
-#d = "$d/src"
-#push!(LOAD_PATH, d)
-#import Tests
-#import PTests
-#pop!(LOAD_PATH)
-#
-#function tests()
-#    Tests.tests()
-#    PTests.tests()
-#end
 
 end
