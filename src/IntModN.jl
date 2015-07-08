@@ -1,5 +1,6 @@
 
 # TODO - overflow
+# TODO - fast mult as http://maths-people.anu.edu.au/~brent/pd/rpb232.pdf
 
 # a pragmatic library for doing modular arithmetic.
 
@@ -20,7 +21,7 @@ module IntModN
 
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule, length, getindex, setindex!, start, done, next,
-       rand, rand!, print, map, leading_zeros, divrem, endof
+       rand, rand!, print, map, leading_zeros, divrem, endof, bits
 import Base.Random.AbstractRNG
 
 export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, 
@@ -507,8 +508,8 @@ end
 # --- GF(2) polynomials encoded as bits
 
 
-immutable GF2Poly{I<:Unsigned} <: Poly
-    i::I
+immutable GF2Poly{U<:Unsigned} <: Poly
+    i::U
 end
 
 # constructors
@@ -558,13 +559,14 @@ print{U<:Unsigned}(io::IO, p::GF2Poly{U}) = print(io, convert(ZPoly{ZField{2,Int
 print_no_mod{U<:Unsigned}(io::IO, p::GF2Poly{U}) = print_no_mod(io, convert(ZPoly{ZField{2,Int}}, p))
 show{U<:Unsigned}(io::IO, p::GF2Poly{U}) = print(io, "GF2Poly{$U}($(p.i))")
 
+bits(p::GF2Poly) = bits(p.i)
+
 zero{U<:Unsigned}(::Type{GF2Poly{U}}) = GF2P(zero(U))
 zero{U<:Unsigned}(::GF2Poly{U}) = GF2P(zero(U))
 one{U<:Unsigned}(::Type{GF2Poly{U}}) = GF2P(one(U))
 one{U<:Unsigned}(::GF2Poly{U}) = GF2P(one(U))
 
-
--{U<:Unsigned}(a::GF2Poly{U}) = ea
+-{U<:Unsigned}(a::GF2Poly{U}) = a
 for (name, op) in ((:+, :$), (:-, :$), (:|, :|), (:&, :&), (:$, :$))
     @eval $name{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = GF2Poly{U}($op(a.i, b.i))
 end

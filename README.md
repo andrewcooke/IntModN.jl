@@ -206,6 +206,31 @@ ZP(IntModN.ZField{2,Int64},1,0,1,0)
 
 #### Polynomials over GF(2)
 
-`GF2Poly{I<:Unsigned} <: Poly` - specialized support for polynomials over
-GF(2).  Coefficients can be only 0 or 1, so we can use bit fields (integers)
+`GF2Poly{U<:Unsigned} <: Poly` - specialized support for polynomials over
+GF(2).  Coefficients can only be 0 or 1, so we can use bit fields (integers)
 for their values.
+
+As always, you can use the constructor directly, or the utilities `GF2P()` and
+`GF2X()`.
+
+The bit pattern can be displayed with `bits()` and addition is binary xor:
+
+```julia
+julia> x = GF2X(Uint8)
+GF2Poly{UInt8}(2)
+
+julia> a = x^7 + x^3
+GF2Poly{UInt8}(136)
+
+julia> b = x^3 + x^2 + 1
+GF2Poly{UInt8}(13)
+
+julia> a+b
+GF2Poly{UInt8}(133)
+
+julia> bits(a), bits(b), bits(a+b)
+("10001000","00001101","10000101")
+```
+
+
+

@@ -218,12 +218,37 @@ function test_p_arithmetic()
     p, q = divrem(a, b)
     @test string(p * b + q) == "x^3 + x^2 + 1 mod 2"
 
+    @test divrem(x,one(x)) == (x, zero(x))
+    @test divrem(x,x) == (one(x), zero(x))
+    @test_throws ErrorException divrem(x,zero(x))
+
     x = X(ZF(5))
     p1 =  x^5 + 3x^4 + 4x^3 + 2x^2      + 1 
     p2 = 4x^5        + 2x^3 + 3x^2 +  x + 4
     ex = 2x^5 + 3x^4 + 2x^3 + 4x^2 + 4x + 2
     r = p1 - p2
     @test r == ex
+
+    @test divrem(x,one(x)) == (x, zero(x))
+    @test divrem(x,x) == (one(x), zero(x))
+    @test_throws ErrorException divrem(x,zero(x))
+
+    # http://www.math.umn.edu/~garrett/coding/Overheads/08_crcs.pdf
+    # page 5
+    x = X(GF2)
+    @test (x^3 + x^2 + 1) + (x^3 + x + 1) == x^2 + x
+    # page 6
+    x = X(Int)
+    @test (2x^3 + 3x^2 + x - 3) * (x^2 - 2x + 1) == (2x^5 - x^4 - 3x^3 - 2x^2 + 7x - 3)
+    # page 7
+    x = X(GF2)
+    @test (x^3 + x + 1) * (x^2 + x + 1) == (x^5 + x^4 + 1)
+    # page 8
+    x = X(Int)
+    @test divrem(x^8 + x^7 + x^4 + x^3 + x + 1, x^5 + x^3 + x + 1) == (x^3 + x^2 - x - 1, x^4 + 3x + 2)
+    # page 9
+    x = X(GF2)
+    @test divrem(x^8 + x^7 + x^4 + x^3 + x + 1, x^5 + x^3 + x + 1) == (x^3 + x^2 + x + 1, x^4 + x)
 
     println("test_p_arithmetic ok")
 end
@@ -332,6 +357,24 @@ function test_p2_arithmetic()
     ex =       x^4             + x + 1
     r = p1 - p2
     @test r == ex
+
+    @test divrem(x,one(x)) == (x, zero(x))
+    @test divrem(x,x) == (one(x), zero(x))
+    @test_throws ErrorException divrem(x,zero(x))
+
+    @test divrem(x^2, x) == (x, zero(x))
+    @test divrem(x^2 + 1, x) == (x, one(x))
+    @test divrem((x + 1) * (x^2 + 1) + 1, x + 1) == (x^2 + 1, one(x))
+    @test divrem((x + 1) * (x^3 + 1) + x, x + 1) == (x^3, one(x))
+
+    x = GF2X(Uint)  # x^8 ahead!
+    # http://www.math.umn.edu/~garrett/coding/Overheads/08_crcs.pdf
+    # page 5
+    @test (x^3 + x^2 + 1) + (x^3 + x + 1) == x^2 + x
+    # page 7
+    @test (x^3 + x + 1) * (x^2 + x + 1) == (x^5 + x^4 + 1)
+    # page 9
+    @test divrem(x^8 + x^7 + x^4 + x^3 + x + 1, x^5 + x^3 + x + 1) == (x^3 + x^2 + x + 1, x^4 + x)
 
     println("test_p2_arithmetic ok")
 end
