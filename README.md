@@ -178,6 +178,9 @@ julia> @zring 4 begin
 `Poly <: Residue` - abstract superclass for polynomials.  All share some basic
 conventions about accessing coefficients (with `[]`) and iterators.
 
+The types below all form rings, not fields, because polynomials do not have
+inverses.
+
 Note: Originally, the code used
 [Polynomial.jl](https://github.com/vtjnash/Polynomial.jl), but that had some
 weird design decisions so I wrote my own code.  Since then,
@@ -231,6 +234,8 @@ GF2Poly{UInt8}(133)
 julia> bits(a), bits(b), bits(a+b)
 ("10001000","00001101","10000101")
 ```
+
+### Factor Rings
 
 
 
