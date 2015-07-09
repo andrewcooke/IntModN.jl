@@ -421,22 +421,11 @@ end
 # --- factor rings of polynomials
 
 
-function test_f_constructor()
-    x = X(GF2)
-    f = FR(x^3 + x^2, x^2 + 1)
-    @test string(f) == "x + 1 mod x^2 + 1 mod 2"
-    @test sprint(show, f) in 
-    ("FR(ZP(ZField{2,Int64},1,1),ZP(ZField{2,Int64},1,0,1))",
-     "FR(ZP(IntModN.ZField{2,Int64},1,1),ZP(IntModN.ZField{2,Int64},1,0,1))")
-
-    println("test_f_constructor ok")
-end
-
 function test_f_rijndael()
     x = X(GF2)
     rij = x^8 + x^4 + x^3 + x + 1
-    a = FR(x^7 + x^6 + x^3 + x, rij)
-    b = FR(x^6 + x^4 + x + 1, rij)
+    a = ZF(rij, x^7 + x^6 + x^3 + x)
+    b = ZF(rij, x^6 + x^4 + x + 1)
     o = one(a)
     @test a * b == o
     @test inv(a) == b
@@ -449,8 +438,8 @@ end
 function test_f_rijndael2()
     x = GF2X(Uint64)
     rij = x^8 + x^4 + x^3 + x + 1
-    a = FR(x^7 + x^6 + x^3 + x, rij)
-    b = FR(x^6 + x^4 + x + 1, rij)
+    a = ZF(rij, x^7 + x^6 + x^3 + x)
+    b = ZF(rij, x^6 + x^4 + x + 1)
     o = one(a)
     @test a * b == o
     @test inv(a) == b
@@ -472,7 +461,6 @@ function test_f_inverse()
 end
 
 function tests_f()
-    test_f_constructor()
     test_f_rijndael()
     test_f_rijndael2()
     test_f_inverse()
