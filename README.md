@@ -20,6 +20,7 @@ of crypto code.
   * [Polynomials](#polynomials)
     * [Polynomials with Integral Coefficients](#polynomials-with-integral-coefficients)
     * [Polynomials over GF(2)](#polynomials-over-gf-2)
+  * [Quotient (Factor) Rings](#quotient-factor-rings)
 	
 
 Incomplete; pull requests welcome.
@@ -109,7 +110,7 @@ julia> print(ZF(rijndael, x^7 + x^6 + x^3 + x) * ZF(rijndael, x^6 + x^4 + x +
 1 mod 2 mod x^8 + x^4 + x^3 + x + 1 mod 2
 ```
 
-Note that `rinjdael` here requires 9 bits of storage; there is no
+Note that `rinjdael` here requires 9 bits of storage; there is no currently
 representation with an implicit msb.
 
 ## Types
