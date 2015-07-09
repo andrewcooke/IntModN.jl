@@ -67,23 +67,6 @@ julia> println(p * b + q)
 x^3 + x^2 + 1 mod 2
 ```
 
-### Rijndael
-
-The multiplication [described
-here](http://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael.27s_finite_field):
-
-```
-julia> x = GF2X(Uint)
-GF2Poly{UInt64}(2)
-
-julia> rijndael = x^8 + x^4 + x^3 + x + 1
-GF2Poly{UInt64}(283)
-
-julia> print(ZF(rijndael, x^7 + x^6 + x^3 + x) * ZF(rijndael, x^6 + x^4 + x +
-1))
-1 mod 2 mod x^8 + x^4 + x^3 + x + 1 mod 2
-```
-
 ### Fast Polynomials in GF(2)
 
 The examples above could have used any modulus.  I chose GF(2) only
@@ -124,6 +107,23 @@ julia> print(FR(x^7 + x^6 + x^3 + x, rijndael) * FR(x^6 + x^4 + x + 1, rijndael)
 
 However, note that `rinjdael` here requires 9 bits of storage; there is no
 representation with an implicit msb.
+
+### Rijndael
+
+The multiplication [described
+here](http://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael.27s_finite_field):
+
+```
+julia> x = GF2X(Uint)
+GF2Poly{UInt64}(2)
+
+julia> rijndael = x^8 + x^4 + x^3 + x + 1
+GF2Poly{UInt64}(283)
+
+julia> print(ZF(rijndael, x^7 + x^6 + x^3 + x) * ZF(rijndael, x^6 + x^4 + x +
+1))
+1 mod 2 mod x^8 + x^4 + x^3 + x + 1 mod 2
+```
 
 ## Types
 
