@@ -21,7 +21,8 @@ module IntModN
 
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule, length, getindex, setindex!, start, done, next,
-       rand, rand!, print, map, leading_zeros, divrem, endof, bits
+       rand, rand!, print, map, leading_zeros, divrem, endof, bits,
+       div, rem, mod
 import Base.Random.AbstractRNG
 
 export ZModN, ZField, ZRing, ZR, ZF, GF2, @zring, @zfield, 
@@ -81,7 +82,8 @@ end
 
 for (f, Z) in ((:ZR, :ZRing), (:ZF, :ZField))
     @eval $f{I<:Integer}(n::Int, i, ::Type{I}) = $Z{n,I}(prepare_z(n, convert(I, i)))
-    @eval $f(n, i::Integer) = $Z{n, typeof(i)}(prepare_z(n, i))
+    @eval $f(n::Int, i::Integer) = $Z{n, typeof(i)}(prepare_z(n, i))
+    @eval $f(n::Integer, i::Integer) = $Z{n, typeof(i)}(mod(i, n))
     @eval $f(n) = i::Integer -> $f(n, i)  # used to construct constructors
 end
 GF2 = ZF(2)
@@ -480,7 +482,10 @@ function divrem{T}(a::ZPoly{T}, b::ZPoly{T})
     map(ZP, _divrem(a.a, b.a))  # ZP discards leading zeroes
 end
 
+div{T}(a::ZPoly{T}, b::ZPoly{T}) = ZP(_divrem(a.a, b.a)[1])
 /{T}(a::ZPoly{T}, b::ZPoly{T}) = ZP(_divrem(a.a, b.a)[1])
+rem{T}(a::ZPoly{T}, b::ZPoly{T}) = ZP(_divrem(a.a, b.a)[2])
+mod{T}(a::ZPoly{T}, b::ZPoly{T}) = ZP(_divrem(a.a, b.a)[2])
 %{T}(a::ZPoly{T}, b::ZPoly{T}) = ZP(_divrem(a.a, b.a)[2])
 # ^ will come from power_by_squaring in stdlib
 degree{T}(a::ZPoly{T}) = length(a) - 1
@@ -628,68 +633,13 @@ function divrem{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U})
     end
 end
 
+div{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = divrem(a, b)[1]
 /{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = divrem(a, b)[1]
+rem{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = divrem(a, b)[2]
+mod{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = divrem(a, b)[2]
 %{U<:Unsigned}(a::GF2Poly{U}, b::GF2Poly{U}) = divrem(a, b)[2]
 
 degree{U<:Unsigned}(p::GF2Poly{U}) = 8*sizeof(U) - leading_zeros(p)
 
-
-
-# --- factor rings and fields
-
-
-# this all assumes that the factor poynomial is irreducible
-
-abstract FModN{P<:Poly, F} <: Residue
-
-# assumes already reduced
-immutable FRing{P<:Poly, F} <: FModN{P,F}
-    p::P
-end
-
-function prepare_f{P<:Poly}(p::P, f::P)
-    p % f
-end
-
-FR{P<:Poly}(p::P, f::P) = FRing{P, encode_factor(f)}(prepare_f(p, f))
-
-factor{P<:Poly, F}(::Type{FRing{P, F}}) = decode_factor(P, F)
-factor{P<:Poly, F}(::FRing{P, F}) = factor(FRing{P, F})
-modulus{P<:Poly, F}(::Type{FModN{P,F}}) = modulus(P)
-modulus{F<:FModN}(::F) = modulus(F)
-# assuming irreducible factor
-order{F<:FModN}(::Type{F}) = modulus(F) ^ degree(factor(F)) - 1
-order{F<:FModN}(::F) = order(F)
-
-zero{P<:Poly, F}(::Type{FRing{P, F}}) = FR(zero(P), decode_factor(P, F))
-one{P<:Poly, F}(::Type{FRing{P, F}}) = FR(one(P), decode_factor(P, F))
-zero{F<:FModN}(f::F) = zero(F)
-one{F<:FModN}(f::F) = one(F)
-
-function show(io::IO, r::FRing)
-    print(io, "FR(")
-    show(io, r.p)
-    print(io, ",")
-    show(io, factor(r))
-    print(io, ")")
-end
-
-function print(io::IO, r::FRing)
-    print_no_mod(io, r.p)
-    print(io, " mod ");
-    print(io, factor(r))
-end
-
-=={F<:FRing}(a::F, b::F) = a.p == b.p
-<={F<:FRing}(a::F, b::F) = a.p <= b.p
-<{F<:FRing}(a::F, b::F) = a.p < b.p
-
-liftf{F<:FRing}(f, a::F, b::F) = FR(f(a.p, b.p), factor(F))
-+{F<:FRing}(a::F, b::F) = liftf(+, a, b)
--{F<:FRing}(a::F, b::F) = liftf(-, a, b)
-*{F<:FRing}(a::F, b::F) = liftf(*, a, b)
-
-inv{F<:FRing}(f::F) = FR(extended_euclidean(f.p, factor(f)), factor(f))
-/{F<:FRing}(a::F, b::F) = a * inv(b)
 
 end
