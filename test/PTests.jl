@@ -6,7 +6,7 @@ module PTests
 
 using Polynomial, IntModN, Compat, Base.Test
 
-import Base: promote_rule, convert
+import Base: promote_rule, convert, ==
 
 export tests
 

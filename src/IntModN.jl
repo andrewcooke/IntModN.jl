@@ -23,7 +23,8 @@ module IntModN
 import Base: show, showcompact, zero, one, inv, real, abs, convert,
        promote_rule, length, getindex, setindex!, start, done, next,
        rand, rand!, print, map, leading_zeros, divrem, endof, bits,
-       div, rem, mod, trailing_zeros
+       div, rem, mod, trailing_zeros, /, ==, <=, <, -, ^, +, *, &,
+       |, $, %, <<, >>>, >>
 import Base.Random.AbstractRNG
 
 using AutoTypeParameters 
