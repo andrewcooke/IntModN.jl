@@ -1,5 +1,4 @@
 
-
 # equality and speed tests for ZPoly, GF2Poly, and Poly
 
 module PTests
@@ -15,39 +14,39 @@ convert{T}(::Type{ZPoly{T}}, p::Poly{T}) = ZP(reverse(p.a))
 # cannot use promotion with poly as not a Number
 =={T}(a::ZPoly{T}, b::Poly{T}) = a == convert(ZPoly{T}, b)
 =={T}(a::Poly{T}, b::ZPoly{T}) = convert(ZPoly{T}, a) == b
-=={U<:Unsigned,J<:Integer,I<:Integer}(a::GF2Poly{U}, b::Poly{ZField{J,2,I}}) = convert(ZPoly{ZField{J,2,I}}, a) == convert(ZPoly{ZField{J,2,I}}, b)
-=={U<:Unsigned,J<:Integer,I<:Integer}(a::Poly{ZField{J,2,I}}, b::GF2Poly{U}) = convert(ZPoly{ZField{J,2,I}}, a) == convert(ZPoly{ZField{J,2,I}}, b)
+=={U<:Unsigned,I<:Integer}(a::GF2Poly{U}, b::Poly{ZField{2,I}}) = convert(ZPoly{ZField{2,I}}, a) == convert(ZPoly{ZField{2,I}}, b)
+=={U<:Unsigned,I<:Integer}(a::Poly{ZField{2,I}}, b::GF2Poly{U}) = convert(ZPoly{ZField{2,I}}, a) == convert(ZPoly{ZField{2,I}}, b)
 
 
 
 function make_random(deg, modulus)
-    T = ZField{Int,modulus,Int}
+    T = ZField{modulus,Int}
     a = rand!(T, Array(T, rand(0:deg+1)))
     p = ZP(a)
     p, Poly(reverse(a))
 end
 
 function make_randoms(n, deg, modulus)
-    a = @compat Tuple{ZPoly{ZField{Int,modulus,Int}}, Poly{ZField{Int,modulus,Int}}}[]
+    a = @compat Tuple{ZPoly{ZField{modulus,Int}}, Poly{ZField{modulus,Int}}}[]
     for _ in 1:n
         push!(a, make_random(deg, modulus))
     end
-    (a, @compat Tuple{ZPoly{ZField{Int,modulus,Int}}, Poly{ZField{Int,modulus,Int}}})
+    (a, @compat Tuple{ZPoly{ZField{modulus,Int}}, Poly{ZField{modulus,Int}}})
 end
 
 function make_random2(deg)
-    T = ZField{Int,2,Int}
+    T = ZField{2,Int}
     a = rand!(T, Array(T, rand(0:deg+1)))
     p = ZP(a)
     convert(GF2Poly{Uint}, p), p, Poly(reverse(a))
 end
 
 function make_randoms2(n, deg)
-    a = @compat Tuple{GF2Poly{Uint}, ZPoly{ZField{Int,2,Int}}, Poly{ZField{Int,2,Int}}}[]
+    a = @compat Tuple{GF2Poly{Uint}, ZPoly{ZField{2,Int}}, Poly{ZField{2,Int}}}[]
     for _ in 1:n
         push!(a, make_random2(deg))
     end
-    (a, (GF2Poly{Uint}, ZPoly{ZField{Int,2,Int}}, Poly{ZField{Int,2,Int}}))
+    (a, (GF2Poly{Uint}, ZPoly{ZField{2,Int}}, Poly{ZField{2,Int}}))
 end
 
 function test_op(a, idx, op, T)
@@ -75,10 +74,8 @@ function do_timing(n, deg)
     srand(1)
     a, T = make_randoms2(n, deg)
     println("\nfirst poly: ", a[1][1])
-    for idx in 1:3
-        print("$(idx): $(T[idx])]\n")
-    end
     for op in (+, -, *, /, %)
+#    for op in (/, %)
         println("\n$op")
         for idx in 1:3
             gc()
@@ -87,7 +84,7 @@ function do_timing(n, deg)
             else
                 gc_enable(false)
             end
-            print("$(idx): ")
+#            print("$(T[idx]): ")
             @time test_op(a, idx, op, T)
             if VERSION < v"0.4-"
                 gc_enable()

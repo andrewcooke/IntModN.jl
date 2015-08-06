@@ -230,7 +230,7 @@ julia> bits(a), bits(b), bits(a+b)
 ### Quotient (Factor) Rings
 
 These used to be a spearate type, but can now be handled as `ZRing()` and
-`ZField()` with polynomial arguments.  The latter is appropriate when the
+`ZField)(` with polynomial arguments.  The latter is appropriate when the
 ideal is irreducible (maximal) (I think).
 
 See the [Rijndael](#rijndael) example.
