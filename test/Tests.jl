@@ -20,7 +20,7 @@ function test_z_constructor()
     Z2 = ZF(2)
     @test GF2(1) == Z2(1) == ZField{Int,2,Int}(1) == ZF(2, 1)
 
-    @test isa(ZR(4, 0x3).i, Uint8)
+    @test isa(ZR(4, 0x3).i, UInt8)
 
     try
         bad = ZR(256, 0x0)
@@ -36,10 +36,10 @@ function test_z_constructor()
 end
 
 function test_z_random()
-    @test isa(rand(ZRing{Int,3,Uint}), ZRing{Int,3,Uint})
-    a = rand(ZField{Int,5,Uint8}, 2, 3)
+    @test isa(rand(ZRing{Int,3,UInt}), ZRing{Int,3,UInt})
+    a = rand(ZField{Int,5,UInt8}, 2, 3)
     @test size(a) == (2, 3)
-    @test isa(a, Array{ZField{Int,5,Uint8},2})
+    @test isa(a, Array{ZField{Int,5,UInt8},2})
     println("test_z_random ok")
 end
 
@@ -298,7 +298,7 @@ end
 
 function test_p2_constructor()
 
-    x = GF2X(Uint8)
+    x = GF2X(UInt8)
     @test GF2P(0xa) == x^3 + x
 
     println("test_p2_constructor ok")
@@ -306,23 +306,23 @@ end
 
 function test_p2_show()
 
-    x = GF2X(Uint)
+    x = GF2X(UInt)
     @test string(3x^2 + 1) == "x^2 + 1 mod 2"
     @test sprint(show, 3x^2 + 1) in 
-    ("GF2Poly{UInt64}(5)", "GF2Poly{Uint64}(5)")
+    ("GF2Poly{UInt64}(5)", "GF2Poly{UInt64}(5)")
 
     println("test_p2_show ok")
 end
 
 function test_p2_comparison()
 
-    x = GF2X(Uint)
+    x = GF2X(UInt)
     @test x + 1 == x + 1
     @test x^2 + 1 != x + 1
 
     for i in 1:10
-        a = GF2P(rand(Uint8))
-        b = GF2P(rand(Uint8))
+        a = GF2P(rand(UInt8))
+        b = GF2P(rand(UInt8))
         @test a == b || ((a < b) $ (b < a))
         if a < b || a == b
             @test a <= b
@@ -342,7 +342,7 @@ end
 
 function test_p2_arithmetic()
 
-    x = GF2X(Uint8)
+    x = GF2X(UInt8)
     a = x^3 + x^2 + 1
     b = x^2 + 1
     p, q = divrem(a, b)
@@ -364,7 +364,7 @@ function test_p2_arithmetic()
     @test divrem((x + 1) * (x^2 + 1) + 1, x + 1) == (x^2 + 1, one(x))
     @test divrem((x + 1) * (x^3 + 1) + x, x + 1) == (x^3, one(x))
 
-    x = GF2X(Uint)  # x^8 ahead!
+    x = GF2X(UInt)  # x^8 ahead!
     # http://www.math.umn.edu/~garrett/coding/Overheads/08_crcs.pdf
     # page 5
     @test (x^3 + x^2 + 1) + (x^3 + x + 1) == x^2 + x
@@ -434,7 +434,7 @@ function test_f_rijndael()
 end
 
 function test_f_rijndael2()
-    x = GF2X(Uint64)
+    x = GF2X(UInt64)
     rij = x^8 + x^4 + x^3 + x + 1
     a = ZF(rij, x^7 + x^6 + x^3 + x)
     b = ZF(rij, x^6 + x^4 + x + 1)

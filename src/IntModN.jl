@@ -116,7 +116,7 @@ for (f, Z) in ((:ZR, :ZRing), (:ZF, ZField))
     @eval convert{J<:Integer,N,I<:Integer}(::Type{$Z{J,N,I}}, i::Integer) = $f(convert(J, N), convert(I, i))
 end
 # conversion to int, but no promotion
-for T in (:Int, :Uint)
+for T in (:Int, :UInt)
     @eval convert(::Type{$T}, z::ZModN) = convert($T, z.i)
 end
 
@@ -560,7 +560,7 @@ end
 GF2P{U<:Unsigned}(p::U) = GF2Poly{U}(p)
 GF2P{S<:Signed}(p::S) = GF2P(unsigned(p))
 GF2X{U<:Unsigned}(::Type{U}) = GF2Poly{U}(one(U) + one(U))
-GF2X() = GF2X(Uint)
+GF2X() = GF2X(UInt)
 
 modulus(::Type{GF2Poly}) = 2
 modulus(::GF2Poly) = 2

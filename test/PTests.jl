@@ -4,7 +4,7 @@
 
 module PTests
 
-using Polynomial, IntModN, Compat, Base.Test
+using Polynomials, IntModN, Compat, Base.Test
 
 import Base: promote_rule, convert, ==
 
@@ -39,15 +39,15 @@ function make_random2(deg)
     T = ZField{Int,2,Int}
     a = rand!(T, Array(T, rand(0:deg+1)))
     p = ZP(a)
-    convert(GF2Poly{Uint}, p), p, Poly(reverse(a))
+    convert(GF2Poly{UInt}, p), p, Poly(reverse(a))
 end
 
 function make_randoms2(n, deg)
-    a = @compat Tuple{GF2Poly{Uint}, ZPoly{ZField{Int,2,Int}}, Poly{ZField{Int,2,Int}}}[]
+    a = @compat Tuple{GF2Poly{UInt}, ZPoly{ZField{Int,2,Int}}, Poly{ZField{Int,2,Int}}}[]
     for _ in 1:n
         push!(a, make_random2(deg))
     end
-    (a, (GF2Poly{Uint}, ZPoly{ZField{Int,2,Int}}, Poly{ZField{Int,2,Int}}))
+    (a, (GF2Poly{UInt}, ZPoly{ZField{Int,2,Int}}, Poly{ZField{Int,2,Int}}))
 end
 
 function test_op(a, idx, op, T)
