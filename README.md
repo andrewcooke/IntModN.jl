@@ -3,6 +3,10 @@ Status](https://travis-ci.org/andrewcooke/IntModN.jl.png)](https://travis-ci.org
 [![Coverage Status](https://coveralls.io/repos/andrewcooke/IntModN.jl/badge.svg)](https://coveralls.io/r/andrewcooke/IntModN.jl)
 [![IntModN](http://pkg.julialang.org/badges/IntModN_release.svg)](http://pkg.julialang.org/?pkg=IntModN&ver=release)
 
+**WARNING** the current tagged version gives warnings in the latest
+0.4, while the tests on the github trunk fail.  I do not have time
+right now to maintain this code, so caveat emptor.  Sorry.
+
 # IntModN.jl
 
 A pragmatic (meaning incomplete, and written by someone who needed
